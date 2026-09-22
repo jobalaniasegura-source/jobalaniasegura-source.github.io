@@ -184,6 +184,13 @@ window.JZAC.ir = ir;
 window.JZAC.rutaSeg = () => (location.hash || '#/dashboard').replace(/^#\/?/, '').split('/');
 window.JZAC.mostrarApp = mostrarApp;
 window.JZAC.cargarModulo = cargarModulo;
+
+document.addEventListener('focusin', (e) => {
+  const t = e.target;
+  if (t && t.matches && t.matches('input[type=number]') && t.value !== '') {
+    t.select();
+  }
+});
 window.JZAC.negocio = {
   nombreNorm: (n) => String(n || '').trim().replace(/\s+/g, ' ').toUpperCase(),
   nombreClave: (n) => String(n || '').trim().toLowerCase().replace(/\s+/g, ' '),

@@ -83,8 +83,8 @@
         <div class="campo"><label>Precio venta (S/)</label><input type="number" step="0.01" min="0" id="f-venta" value="${p ? p.precioVenta : ''}"></div>
       </div>
       <div class="fila">
-        <div class="campo"><label>Stock actual</label><input type="number" step="1" min="0" id="f-stock" value="${p ? p.stock : 0}"></div>
-        <div class="campo"><label>Stock mínimo (alerta)</label><input type="number" step="1" min="0" id="f-stockmin" value="${p ? (p.stockMin || 0) : 0}"></div>
+        <div class="campo"><label>Stock actual</label><input type="number" step="1" min="0" id="f-stock" value="${p ? p.stock : ''}"></div>
+        <div class="campo"><label>Stock mínimo (alerta)</label><input type="number" step="1" min="0" id="f-stockmin" value="${p ? (p.stockMin || 0) : ''}"></div>
       </div>
       <div class="campo"><label>Fecha de vencimiento (opcional)</label><input type="date" id="f-vence" value="${p && p.fechaVencimiento ? JZAC.ui.fechaInput(p.fechaVencimiento) : ''}"></div>`,
       `<button class="btn" data-cerrar>Cancelar</button>
