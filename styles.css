@@ -132,8 +132,7 @@ a {
   height: 44px;
   border-radius: 12px;
   font-weight: 800;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  font-size: 1.05rem;
   color: #201800;
   background: linear-gradient(135deg, var(--gold), var(--gold-strong));
   box-shadow: 0 6px 18px rgba(245, 197, 66, 0.35);
@@ -176,7 +175,7 @@ a {
   place-items: center;
   border-radius: 50%;
   font-weight: 800;
-  font-size: 1.02rem;
+  font-size: 1.7rem;
   letter-spacing: 0.05em;
   color: #201800;
   background: linear-gradient(135deg, var(--gold), var(--gold-strong));
