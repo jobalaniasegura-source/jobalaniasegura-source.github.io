@@ -17,7 +17,7 @@
     dibujar(`
       <div class="auth">
         <div class="auth-caja">
-          <div class="auth-logo"><img src="./icons/icon-192.png" alt="JZAC ERP"></div>
+          <div class="auth-logo"><img src="./icons/icono.svg" alt="JZAC ERP"></div>
           <div class="auth-titulo">JZAC ERP</div>
           <div class="auth-sub">Software que trabaja por tu negocio</div>
           <div id="auth-form"></div>
@@ -75,7 +75,7 @@
     dibujar(`
       <div class="auth">
         <div class="auth-caja">
-          <div class="auth-logo"><img src="./icons/icon-192.png" alt="JZAC ERP"></div>
+          <div class="auth-logo"><img src="./icons/icono.svg" alt="JZAC ERP"></div>
           <div class="auth-titulo">Bienvenido a JZAC ERP</div>
           <div class="auth-sub">${JZAC.ui.esc(u.nombreNegocio)}</div>
           <div class="card" style="border:1px solid var(--borde);box-shadow:none">
@@ -101,7 +101,7 @@
     dibujar(`
       <div class="auth">
         <div class="auth-caja bloqueada">
-          <div class="auth-logo"><img src="./icons/icon-192.png" alt="JZAC ERP"></div>
+          <div class="auth-logo"><img src="./icons/icono.svg" alt="JZAC ERP"></div>
           <div class="gran">!</div>
           <h2>Tu prueba ha terminado</h2>
           <p>Activa tu licencia con el código que te entregó tu vendedor para seguir usando JZAC ERP. Es un pago único, de por vida.</p>

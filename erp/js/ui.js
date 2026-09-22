@@ -118,7 +118,7 @@ async function mostrarApp(usuario) {
     <div class="app">
       <nav class="nav" id="nav">
         <div class="nav-brand">
-          <img src="./icons/icon-192.png" alt="JZAC">
+          <img src="./icons/icono.svg" alt="JZAC">
           <div>JZAC ERP<small>${ui.esc(usuario.nombreNegocio)}</small></div>
         </div>
         ${NAV.map((it) => `<a href="#/${it.ruta}" data-ruta="${it.ruta}">${ui.esc(it.label)}</a>`).join('')}

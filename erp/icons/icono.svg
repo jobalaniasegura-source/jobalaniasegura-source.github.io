@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="JZAC ERP">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1BA94E"/>
+      <stop offset="0.55" stop-color="#128240"/>
+      <stop offset="1" stop-color="#0A5226"/>
+    </linearGradient>
+    <linearGradient id="oro" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F2C44D"/>
+      <stop offset="1" stop-color="#D99A22"/>
+    </linearGradient>
+  </defs>
+
+  <!-- tile base -->
+  <rect x="6" y="6" width="500" height="500" rx="114" fill="url(#tile)"/>
+  <!-- brillo superior -->
+  <path d="M6 120 a114 114 0 0 1 114 -114 h272 a114 114 0 0 1 114 114 v28 h-500 z" fill="#ffffff" opacity="0.07"/>
+  <!-- anillo interior sutil -->
+  <rect x="22" y="22" width="468" height="468" rx="102" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="8"/>
+
+  <!-- toldo (awning) dorado -->
+  <path d="M120 152 L394 152 L372 220 L142 220 Z" fill="url(#oro)"/>
+  <!-- vuelos del toldo -->
+  <path d="M142 220 a14.5 14.5 0 0 1 29 0 a14.5 14.5 0 0 1 29 0 a14.5 14.5 0 0 1 29 0 a14.5 14.5 0 0 1 29 0 a14.5 14.5 0 0 1 29 0 a14.5 14.5 0 0 1 29 0 a14.5 14.5 0 0 1 29 0 a14.5 14.5 0 0 1 29 0 z"
+        fill="url(#oro)"/>
+  <!-- marca en el toldo -->
+  <text x="257" y="199" text-anchor="middle" font-family="Arial, Helvetica, system-ui, sans-serif" font-size="44" font-weight="800" letter-spacing="7" fill="#3A2504">JZAC</text>
+
+  <!-- cuerpo de la tienda -->
+  <rect x="122" y="238" width="268" height="170" rx="18" fill="#ffffff"/>
+  <rect x="122" y="238" width="268" height="170" rx="18" fill="#0A5226" opacity="0.04"/>
+  <!-- escaparate izquierdo -->
+  <rect x="138" y="300" width="72" height="52" rx="12" fill="#DCF3E6" stroke="#B9E2CA" stroke-width="3"/>
+  <!-- escaparate derecho -->
+  <rect x="302" y="300" width="72" height="52" rx="12" fill="#DCF3E6" stroke="#B9E2CA" stroke-width="3"/>
+  <!-- puerta -->
+  <rect x="218" y="300" width="76" height="108" rx="12" fill="#0B5E2C"/>
+  <circle cx="280" cy="354" r="6" fill="#F2C44D"/>
+  <!-- felpudo -->
+  <rect x="222" y="388" width="68" height="16" rx="6" fill="#0B5E2C" opacity="0.35"/>
+
+  <!-- moneda soles -->
+  <circle cx="398" cy="430" r="62" fill="url(#oro)" stroke="#B87E14" stroke-width="5"/>
+  <circle cx="398" cy="430" r="48" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="3"/>
+  <text x="398" y="432" text-anchor="middle" dominant-baseline="central" font-family="Arial, Helvetica, system-ui, sans-serif" font-size="68" font-weight="800" fill="#ffffff">S/</text>
+</svg>
