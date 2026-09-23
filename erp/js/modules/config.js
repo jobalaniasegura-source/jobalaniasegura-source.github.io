@@ -58,6 +58,19 @@
           </div>
 
           <div class="card mt16">
+            <div class="seccion-titulo" style="margin-top:0">Flujo rápido de la caja</div>
+            <div class="texto-suave" style="font-size:13px;margin-bottom:12px">Para atender al cliente más rápido. Puedes activarlas y desactivarlas cuando quieras.</div>
+            <label class="campo-check" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <input type="checkbox" id="cf-modrap" style="width:18px;height:18px">
+              <span><b>Modo rápido:</b> al registrar la venta <b>se queda vendiendo</b> en la misma pantalla (no vuelve al historial) y deja todo limpio para el siguiente cliente.</span>
+            </label>
+            <label class="campo-check" style="display:flex;gap:8px;align-items:center">
+              <input type="checkbox" id="cf-autoimp" style="width:18px;height:18px">
+              <span><b>Imprimir boleta automática:</b> al registrar, la boleta sale sola sin tocar nada más.</span>
+            </label>
+          </div>
+
+          <div class="card mt16">
             <div class="seccion-titulo" style="margin-top:0">Cajón registrador (USB)</div>
             <div class="texto-suave" style="font-size:13px;margin-bottom:12px">Se abre automáticamente al cobrar en efectivo (pulso USB a la impresora térmica). Requiere Chrome o Edge.</div>
             <div class="texto-suave" style="font-size:13px;margin-bottom:12px" id="cf-cajon-estado">Esperando dispositivo...</div>
@@ -141,6 +154,17 @@
       if (!JZAC.impresion) { JZAC.ui.toast('Carga el sistema primero.', 'mal'); return; }
       JZAC.ui.imprimirHTML(JZAC.impresion.test(usr) + '<div style="margin-top:8px"></div>', JZAC.impresion.css(JZAC.impresion.ancho()));
     });
+
+    // ---------- flujo rápido de la caja ----------
+    for (const t of ['cf-modrap', 'cf-autoimp']) {
+      const el = document.getElementById(t);
+      const key = t === 'cf-modrap' ? 'jzac_modo_rapido' : 'jzac_autoimp';
+      el.checked = localStorage.getItem(key) !== '0';
+      el.addEventListener('change', () => {
+        localStorage.setItem(key, el.checked ? '1' : '0');
+        JZAC.ui.toast('Preferencia guardada.', 'bien');
+      });
+    }
 
     // ---------- cajón registrador ----------
     if (window.JZAC.cajon) {

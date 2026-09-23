@@ -455,6 +455,9 @@
         if (await JZAC.ui.confirmar(`¿Anular la boleta <b>${v.boleta}</b> por ${JZAC.ui.dinero(v.total)}? Se repondrá el stock.`)) {
           await anularVenta(v);
           JZAC.ui.toast('Venta anulada y stock repuesto.', 'bien');
+          const i1 = ventas.indexOf(v); if (i1 > -1) ventas.splice(i1, 1);
+          const i2 = ventasAll.indexOf(v); if (i2 > -1) ventasAll.splice(i2, 1);
+          delete detvByVenta[v.id];
           pintaTabla();
         }
       }));
@@ -511,6 +514,7 @@
     const productos = await JZAC.db.listar('productos');
     const clientes = await JZAC.db.listar('clientes');
     let items = [];
+    let ultimaAgregacion = 0;
     const metodos = ['Efectivo', 'Tarjeta', 'Yape', 'Plin', 'Transferencia', 'Mixto'];
     const metodos2 = ['Yape', 'Plin', 'Tarjeta', 'Transferencia'];
 
@@ -575,6 +579,13 @@
           <div class="campo" id="panel-efectivo" style="display:none">
             <label>Monto recibido (S/)</label>
             <input type="number" id="in-recibido" step="0.01" min="0" value="0">
+            <div class="monto-rapido" style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">
+              <button type="button" class="btn btn-sm" data-monto="exacto" title="Usar el total exacto">Exacto</button>
+              <button type="button" class="btn btn-sm" data-monto="20">S/ 20</button>
+              <button type="button" class="btn btn-sm" data-monto="50">S/ 50</button>
+              <button type="button" class="btn btn-sm" data-monto="100">S/ 100</button>
+              <button type="button" class="btn btn-sm" data-monto="200">S/ 200</button>
+            </div>
             <div class="texto-suave" style="font-size:13px;margin-top:4px" id="txt-vuelto"></div>
           </div>
           <div id="panel-mixto" style="display:none">
@@ -623,6 +634,7 @@
     }
 
     function agregarItem(p, cant, precio) {
+      ultimaAgregacion = Date.now();
       const existente = items.find((it) => it.productoId === p.id);
       if (existente) { existente.cantidad = Number(existente.cantidad) + Number(cant); }
       else { items.push({ productoId: p.id, nombre: p.nombre, cantidad: Number(cant), precio, costo: Number(p.precioCompra || 0), esPeso: !!p.ventaPeso }); }
@@ -730,11 +742,21 @@
     if (scanRapido) {
       scanRapido.focus();
       scanRapido.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          clearTimeout(timerScan);
-          agregaPorCodigo(scanRapido.value);
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        clearTimeout(timerScan);
+        const t = scanRapido.value.trim();
+        if (t) {
+          agregaPorCodigo(t);
           scanRapido.value = '';
+          return;
+        }
+        // Enter sin código + ya hay productos: cobrar (flujo rápido).
+        // Se exige una pausa >600ms desde la última carga para que un lector
+        // que manda doble Enter no registre la venta antes de tiempo.
+        const hayModal = !!document.getElementById('modal-root').innerHTML;
+        if (items.length > 0 && !hayModal && Date.now() - ultimaAgregacion > 600) {
+          registrarAhora();
         }
       });
       // el lector puede no terminar en Enter; agrega tras una pausa breve
@@ -766,6 +788,12 @@
     }
     const inRecibido = document.getElementById('in-recibido');
     inRecibido.addEventListener('input', () => { recibidoManual = true; actualizaTot(); });
+    cont.querySelectorAll('[data-monto]').forEach((b) => b.addEventListener('click', () => {
+      recibidoManual = true;
+      if (b.dataset.monto === 'exacto') { inRecibido.value = Math.round(totalVenta().tot * 100) / 100; }
+      else { inRecibido.value = Number(b.dataset.monto); }
+      actualizaTot();
+    }));
     document.getElementById('sel-metodo').addEventListener('change', () => {
       const m = document.getElementById('sel-metodo').value;
       sincPanelPago();
@@ -790,7 +818,10 @@
       const extra = {};
       if (m === 'Efectivo') {
         const rec = Number(document.getElementById('in-recibido').value || 0);
-        if (rec < dsc.tot) { JZAC.ui.toast('El monto recibido cubre el total.', 'mal'); return null; }
+        if (rec < dsc.tot) {
+          JZAC.ui.toast(`Falta recibir ${JZAC.ui.dinero(dsc.tot - rec)} del total ${JZAC.ui.dinero(dsc.tot)}.`, 'mal');
+          return null;
+        }
         extra.recibido = rec;
         extra.vuelto = Math.max(0, rec - dsc.tot);
       } else if (m === 'Mixto') {
@@ -816,7 +847,36 @@
       return (extra && extra.factura) ? 'Factura' : 'Boleta';
     }
 
-    document.getElementById('guardar-venta').addEventListener('click', async () => {
+    // Limpia el panel para atender al siguiente cliente sin reingresar.
+    async function reiniciarFormulario() {
+      items = [];
+      ultimaAgregacion = 0;
+      const btnv = document.getElementById('guardar-venta');
+      if (btnv) btnv.disabled = false;
+      const nuevos = await JZAC.db.listar('productos');
+      productos.splice(0, productos.length, ...nuevos);
+      const sel = document.getElementById('sel-prod');
+      sel.innerHTML = optionesMontaje();
+      sel.value = '';
+      document.getElementById('in-precio').value = '0';
+      document.getElementById('in-cant').value = '1';
+      document.getElementById('in-descuento').value = '0';
+      document.getElementById('in-recibido').value = '0';
+      document.getElementById('in-efectivo').value = '0';
+      document.getElementById('sel-cliente').value = '';
+      const chk = document.getElementById('chk-factura');
+      if (chk.checked) { chk.checked = false; document.getElementById('panel-factura').style.display = 'none'; }
+      document.getElementById('in-ruc').value = '';
+      document.getElementById('in-razon').value = '';
+      document.getElementById('sel-metodo').value = 'Efectivo';
+      recibidoManual = false;
+      sincPanelPago();
+      pintaItems();
+      actualizaTot();
+      if (scanRapido) scanRapido.focus();
+    }
+
+    async function registrarAhora() {
       const dsc = totalVenta();
       if (items.length === 0) { JZAC.ui.toast('Agrega al menos un producto.', 'mal'); return; }
       const cli = document.getElementById('sel-cliente').value;
@@ -830,7 +890,7 @@
         const res = await guardarVenta(u, items, cli, metodo, dsc.dsc, extra);
         // Cajón registrador: se abre cuando hubo pago en efectivo.
         const cobroEnEfectivo = metodo === 'Efectivo' || (Number(extra.pagoEfectivo || 0) > 0);
-        if (cobroEnEfectivo && window.JZAC.cajon) { JZAC.cajon.abrir(); }
+        if (cobroEnEfectivo && window.JZAC.cajon && JZAC.cajon.soporta()) { try { JZAC.cajon.abrir(); } catch (e) { console.warn(e); } }
         const vv = {
           boleta: res.boleta,
           esFactura: !!extra.factura,
@@ -849,6 +909,14 @@
           total: res.total
         };
         const detP = items.map((it) => ({ producto: it.nombre, cantidad: it.cantidad, precio: it.precio, total: Math.round(it.precio * it.cantidad * 100) / 100, esPeso: it.esPeso }));
+        if (JZAC.ventaRapida.modoRapido()) {
+          // Modo rápido: imprime (si está activado), avisa y atiende al siguiente.
+          if (JZAC.ventaRapida.autoImprime()) { imprimirBoleta(u, vv, detP); }
+          const info = vv.vuelto != null ? ` · Vuelto: ${JZAC.ui.dinero(vv.vuelto)}` : (vv.pagoSaldo != null ? ` · ${vv.metodo2}: ${JZAC.ui.dinero(vv.pagoSaldo)}` : '');
+          JZAC.ui.toast(`${etiquetaDoc(extra, vv)} ${res.boleta} registrada.${info}`, 'bien');
+          await reiniciarFormulario();
+          return;
+        }
         const m = JZAC.ui.modal(
           `<div class="modal-hdr"><h3>Venta registrada</h3><button class="cierre" data-cerrar>×</button></div>
            <p style="margin:0">${etiquetaDoc(extra, vv)} <b>${JZAC.ui.esc(res.boleta)}</b><br>Total: <b style="font-size:18px">${JZAC.ui.dinero(res.total)}</b>${extra.vuelto != null ? `<br>Vuelto: <b>${JZAC.ui.dinero(extra.vuelto)}</b>` : ''}</p>`,
@@ -861,7 +929,9 @@
         console.error(e);
         btn.disabled = false;
       }
-    });
+    }
+
+    document.getElementById('guardar-venta').addEventListener('click', registrarAhora);
   }
 
   function render(cont) {
@@ -892,6 +962,11 @@
     css: (ancho) => cssRecibo(ancho),
     ancho: getAnchoBoleta,
     test: boletaTest
+  };
+  // Flujo rápido de caja (localStorage): '0' desactiva, cualquier otro valor activa.
+  window.JZAC.ventaRapida = {
+    modoRapido: () => localStorage.getItem('jzac_modo_rapido') !== '0',
+    autoImprime: () => localStorage.getItem('jzac_autoimp') !== '0'
   };
   window.JZAC.modulos.ventas = { render };
 })();
