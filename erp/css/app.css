@@ -136,6 +136,7 @@ body {
 .stat.dorado { border-top: 4px solid var(--dorado); }
 .stat.rojo { border-top: 4px solid var(--rojo); }
 .stat.azul { border-top: 4px solid #2563EB; }
+.stat.gris { border-top: 4px solid var(--texto-suave); }
 
 /* ---------- resumen general ---------- */
 .resumen-general { display: flex; flex-direction: column; margin-top: 2px; }

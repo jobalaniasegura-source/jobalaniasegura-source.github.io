@@ -58,6 +58,16 @@
           </div>
 
           <div class="card mt16">
+            <div class="seccion-titulo" style="margin-top:0">Cajón registrador (USB)</div>
+            <div class="texto-suave" style="font-size:13px;margin-bottom:12px">Se abre automáticamente al cobrar en efectivo (pulso USB a la impresora térmica). Requiere Chrome o Edge.</div>
+            <div class="texto-suave" style="font-size:13px;margin-bottom:12px" id="cf-cajon-estado">Esperando dispositivo...</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="cf-cajon-conectar">Conectar cajón</button>
+              <button class="btn" id="cf-cajon-probar">Probar apertura</button>
+            </div>
+          </div>
+
+          <div class="card mt16">
             <div class="seccion-titulo" style="margin-top:0">Acerca de</div>
             <div style="font-size:14px;line-height:1.7;color:var(--texto-suave)">
               <b style="color:var(--texto)">JZAC ERP</b> · versión web 1.0<br>
@@ -131,6 +141,32 @@
       if (!JZAC.impresion) { JZAC.ui.toast('Carga el sistema primero.', 'mal'); return; }
       JZAC.ui.imprimirHTML(JZAC.impresion.test(usr) + '<div style="margin-top:8px"></div>', JZAC.impresion.css(JZAC.impresion.ancho()));
     });
+
+    // ---------- cajón registrador ----------
+    if (window.JZAC.cajon) {
+      async function cajonEstado() {
+        const el = document.getElementById('cf-cajon-estado');
+        await JZAC.cajon.conectarPrevia();
+        const n = JZAC.cajon.nombre();
+        el.textContent = JZAC.cajon.soporta()
+          ? (n ? `Conectado: <b>${n}</b> · se abrirá solo al cobrar en efectivo.` : 'No hay cajón conectado. Toca "Conectar cajón" y elige tu impresora USB.')
+          : 'Este navegador no soporta el cajón USB. Usa Chrome o Edge.';
+      }
+      cajonEstado();
+      document.getElementById('cf-cajon-conectar').addEventListener('click', async () => {
+        try {
+          await JZAC.cajon.conectar();
+          JZAC.ui.toast('Cajón conectado.', 'bien');
+        } catch (e) {
+          JZAC.ui.toast(e && e.message ? e.message : 'No se pudo conectar.', 'mal');
+        }
+        cajonEstado();
+      });
+      document.getElementById('cf-cajon-probar').addEventListener('click', async () => {
+        const ok = await JZAC.cajon.test();
+        JZAC.ui.toast(ok ? '¡Cajón abierto!' : 'No se pudo abrir. Revisa la conexión.', ok ? 'bien' : 'mal');
+      });
+    }
   }
 
   window.JZAC = window.JZAC || {};

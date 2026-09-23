@@ -30,6 +30,15 @@
     const saludo = new Date().getHours() < 12 ? 'Buenos días' : new Date().getHours() < 19 ? 'Buenas tardes' : 'Buenas noches';
     const fec = new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
 
+    const ticketProm = ventasHoy.length ? ingresosHoy / ventasHoy.length : 0;
+    const efectivoHoy = ventasHoy.reduce((a, v) => a + (v.pagoEfectivo != null ? Number(v.pagoEfectivo) : (v.metodoPago === 'Efectivo' ? Number(v.total || 0) : 0)), 0);
+    const itemsVendidosHoy = detv.filter((d) => idsHoy.has(d.ventaId)).reduce((a, d) => a + Number(d.cantidad || 0), 0);
+    const porMetodo = {};
+    ventasHoy.forEach((v) => { const k = v.metodoPago || 'Efectivo'; porMetodo[k] = (porMetodo[k] || 0) + Number(v.total || 0); });
+    const topProd = {};
+    detv.filter((d) => idsHoy.has(d.ventaId)).forEach((d) => { topProd[d.producto] = (topProd[d.producto] || 0) + Number(d.total || 0); });
+    const topArr = Object.entries(topProd).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
     cont.innerHTML = `
       <div class="card mt16">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -49,6 +58,34 @@
         <div class="card stat azul"><div class="stat-titulo">Ganancia neta</div><div class="stat-valor">${JZAC.ui.dinero(gananciaNeta)}</div><div class="stat-icono">G</div></div>
         <div class="card stat dorado"><div class="stat-titulo">Gastos hoy</div><div class="stat-valor">${JZAC.ui.dinero(gastosHoy)}</div><div class="stat-icono">G</div></div>
         <div class="card stat rojo"><div class="stat-titulo">Fiados por cobrar</div><div class="stat-valor">${JZAC.ui.dinero(fiadosPendientes)}</div><div class="stat-icono">F</div></div>
+      </div>
+
+      <div class="grid grid-4 mt16">
+        <div class="card stat azul"><div class="stat-titulo">Ticket promedio</div><div class="stat-valor">${JZAC.ui.dinero(ticketProm)}</div><div class="stat-icono">T</div></div>
+        <div class="card stat verde"><div class="stat-titulo">Ventas (n.º)</div><div class="stat-valor">${ventasHoy.length}</div><div class="stat-icono">N</div></div>
+        <div class="card stat dorado"><div class="stat-titulo">Efectivo cobrado</div><div class="stat-valor">${JZAC.ui.dinero(efectivoHoy)}</div><div class="stat-icono">E</div></div>
+        <div class="card stat gris"><div class="stat-titulo">Items vendidos</div><div class="stat-valor">${itemsVendidosHoy}</div><div class="stat-icono">I</div></div>
+      </div>
+
+      <div class="grid grid-2 mt16">
+        <div class="card">
+          <div class="seccion-titulo">Pagos de hoy</div>
+          ${Object.keys(porMetodo).length === 0
+            ? '<div class="texto-suave">Sin ventas registradas hoy.</div>'
+            : `<div class="resumen-general">
+                ${Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([m, tot]) =>
+                  `<div class="resumen-fila"><span><span class="badge badge-gris">${JZAC.ui.esc(m)}</span></span><b>${JZAC.ui.dinero(tot)}</b></div>`).join('')}
+              </div>`}
+        </div>
+        <div class="card">
+          <div class="seccion-titulo">Más vendidos hoy</div>
+          ${topArr.length === 0
+            ? '<div class="texto-suave">Aún no hay ventas hoy.</div>'
+            : `<div class="resumen-general">
+                ${topArr.map(([prod, tot], i) =>
+                  `<div class="resumen-fila"><span>${i + 1}. ${JZAC.ui.esc(prod)}</span><b>${JZAC.ui.dinero(tot)}</b></div>`).join('')}
+              </div>`}
+        </div>
       </div>
 
       <div class="grid grid-2 mt16">

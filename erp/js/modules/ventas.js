@@ -161,55 +161,107 @@
 
   // ---------- vista: listado ----------
   async function vistaLista(cont, u) {
-    const ventas = await JZAC.db.listar('ventas');
-    const detv = await JZAC.db.listar('detalle_venta');
-    ventas.sort((a, b) => b.fecha - a.fecha);
+    const ventasAll = await JZAC.db.listar('ventas');
+    const detAll = await JZAC.db.listar('detalle_venta');
+    ventasAll.sort((a, b) => b.fecha - a.fecha);
+    const detvByVenta = {};
+    detAll.forEach((d) => { (detvByVenta[d.ventaId] = detvByVenta[d.ventaId] || []).push(d); });
     const totales = {};
-    detv.forEach((d) => { totales[d.ventaId] = (totales[d.ventaId] || 0) + Number(d.cantidad); });
+    detAll.forEach((d) => { totales[d.ventaId] = (totales[d.ventaId] || 0) + Number(d.cantidad); });
 
     cont.innerHTML = `
       <div class="panel-hdr">
         <div>
           <div class="seccion-titulo" style="margin:0">Historial de ventas</div>
-          <div class="texto-suave" style="font-size:13px">${ventas.length} venta(s) · Boleta ${JZAC.ui.esc(u.serieBoleta || 'B001')}</div>
+          <div class="texto-suave" style="font-size:13px" id="lbl-resumen"></div>
         </div>
         <button class="btn btn-primario" id="nueva-venta">+ Nueva venta</button>
       </div>
-      ${ventas.length === 0
-        ? JZAC.ui.vacio('Registra tu primera venta', 'Aún no hay ventas registradas.')
+      <div class="card mt16">
+        <div class="fila" style="align-items:flex-end">
+          <div class="campo" style="flex:2;min-width:150px">
+            <label>Buscar</label>
+            <input id="filtro-ventas" placeholder="Boleta, cliente, RUC, producto...">
+          </div>
+          <div class="campo"><label>Desde</label><input type="date" id="fecha-desde"></div>
+          <div class="campo"><label>Hasta</label><input type="date" id="fecha-hasta"></div>
+          <div class="campo"><button class="btn btn-sm" id="limpiar-filtro">Limpiar</button></div>
+        </div>
+      </div>
+      <div id="tabla-ventas"></div>`;
+
+    document.getElementById('nueva-venta').addEventListener('click', () => JZAC.ir('ventas/nueva'));
+
+    function pintaTabla() {
+      const q = document.getElementById('filtro-ventas').value.trim().toLowerCase();
+      const d0 = document.getElementById('fecha-desde').value;
+      const d1 = document.getElementById('fecha-hasta').value;
+      const desde = d0 ? new Date(d0 + 'T00:00:00').getTime() : null;
+      const hasta = d1 ? new Date(d1 + 'T23:59:59.999').getTime() : null;
+      const ventas = ventasAll.filter((v) => {
+        if (desde != null && v.fecha < desde) return false;
+        if (hasta != null && v.fecha > hasta) return false;
+        if (!q) return true;
+        if (String(v.boleta).toLowerCase().includes(q)) return true;
+        if (String(v.cliente || '').toLowerCase().includes(q)) return true;
+        if (String(v.ruc || '').toLowerCase().includes(q)) return true;
+        if (String(v.razonSocial || '').toLowerCase().includes(q)) return true;
+        if (String(v.metodoPago || '').toLowerCase().includes(q)) return true;
+        const det = detvByVenta[v.id];
+        return !!(det && det.some((d) => String(d.producto).toLowerCase().includes(q)));
+      });
+      document.getElementById('lbl-resumen').textContent =
+        `${ventas.length} de ${ventasAll.length} venta(s) · Boleta ${JZAC.ui.esc(u.serieBoleta || 'B001')} · Factura ${JZAC.ui.esc(u.serieFactura || 'F001')}`;
+      document.getElementById('tabla-ventas').innerHTML = ventas.length === 0
+        ? JZAC.ui.vacio(q || desde || hasta ? 'Sin resultados' : 'Registra tu primera venta',
+            q || desde || hasta ? 'Ninguna venta coincide con la búsqueda o el rango de fechas.' : 'Aún no hay ventas registradas.')
         : `<div class="tabla-wrap"><table>
             <tr><th>Boleta</th><th>Fecha</th><th>Cliente</th><th>Pago</th><th>Items</th><th class="monto">Total</th><th></th></tr>
             ${ventas.map((v) => `
               <tr>
                 <td class="negrita">${JZAC.ui.esc(v.boleta)}</td>
                 <td>${JZAC.ui.fh(v.fecha)}</td>
-                <td>${JZAC.ui.esc(v.cliente || '—')}</td>
+                <td>${JZAC.ui.esc(v.esFactura ? (v.razonSocial || v.ruc || v.cliente || '—') : (v.cliente || '—'))}</td>
                 <td><span class="badge badge-gris">${JZAC.ui.esc(v.metodoPago || 'Efectivo')}</span></td>
                 <td>${totales[v.id] || 0}</td>
                 <td class="monto">${JZAC.ui.dinero(v.total)}</td>
                 <td>
                   <div class="acciones">
                     <button class="btn btn-sm" data-ver="${v.id}">Ver</button>
+                    <button class="btn btn-sm btn-dorado" data-reimp="${v.id}" title="Reimprimir boleta/factura">Imprimir</button>
                     <button class="btn btn-sm btn-peligro" data-anular="${v.id}">Anular</button>
                   </div>
                 </td>
               </tr>`).join('')}
-          </table></div>`}`;
+          </table></div>`;
+      cont.querySelectorAll('[data-ver]').forEach((b) => b.addEventListener('click', () => {
+        const v = ventas.find((x) => x.id === Number(b.dataset.ver));
+        detalleModal(u, v, detvByVenta[v.id] || []);
+      }));
+      cont.querySelectorAll('[data-reimp]').forEach((b) => b.addEventListener('click', () => {
+        const v = ventas.find((x) => x.id === Number(b.dataset.reimp));
+        imprimirBoleta(u, v, detvByVenta[v.id] || []);
+      }));
+      cont.querySelectorAll('[data-anular]').forEach((b) => b.addEventListener('click', async () => {
+        const v = ventas.find((x) => x.id === Number(b.dataset.anular));
+        if (await JZAC.ui.confirmar(`¿Anular la boleta <b>${v.boleta}</b> por ${JZAC.ui.dinero(v.total)}? Se repondrá el stock.`)) {
+          await anularVenta(v);
+          JZAC.ui.toast('Venta anulada y stock repuesto.', 'bien');
+          pintaTabla();
+        }
+      }));
+    }
 
-    document.getElementById('nueva-venta').addEventListener('click', () => JZAC.ir('ventas/nueva'));
-    cont.querySelectorAll('[data-ver]').forEach((b) => b.addEventListener('click', async () => {
-      const v = ventas.find((x) => x.id === Number(b.dataset.ver));
-      const det = detv.filter((d) => d.ventaId === v.id);
-      detalleModal(u, v, det);
-    }));
-    cont.querySelectorAll('[data-anular]').forEach((b) => b.addEventListener('click', async () => {
-      const v = ventas.find((x) => x.id === Number(b.dataset.anular));
-      if (await JZAC.ui.confirmar(`¿Anular la boleta <b>${v.boleta}</b> por ${JZAC.ui.dinero(v.total)}? Se repondrá el stock.`)) {
-        await anularVenta(v);
-        JZAC.ui.toast('Venta anulada y stock repuesto.', 'bien');
-        await vistaLista(cont, u);
-      }
-    }));
+    document.getElementById('filtro-ventas').addEventListener('input', pintaTabla);
+    document.getElementById('fecha-desde').addEventListener('change', pintaTabla);
+    document.getElementById('fecha-hasta').addEventListener('change', pintaTabla);
+    document.getElementById('limpiar-filtro').addEventListener('click', () => {
+      document.getElementById('filtro-ventas').value = '';
+      document.getElementById('fecha-desde').value = '';
+      document.getElementById('fecha-hasta').value = '';
+      pintaTabla();
+    });
+    pintaTabla();
   }
 
   function detalleModal(u, v, det) {
@@ -566,6 +618,9 @@
       btn.disabled = true;
       try {
         const res = await guardarVenta(u, items, cli, metodo, dsc.dsc, extra);
+        // Cajón registrador: se abre cuando hubo pago en efectivo.
+        const cobroEnEfectivo = metodo === 'Efectivo' || (Number(extra.pagoEfectivo || 0) > 0);
+        if (cobroEnEfectivo && window.JZAC.cajon) { JZAC.cajon.abrir(); }
         const vv = {
           boleta: res.boleta,
           esFactura: !!extra.factura,
