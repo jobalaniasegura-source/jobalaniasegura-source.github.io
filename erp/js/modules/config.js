@@ -43,6 +43,21 @@
           </div>
 
           <div class="card mt16">
+            <div class="seccion-titulo" style="margin-top:0">Caja e impresión</div>
+            <div class="campo">
+              <label>Ancho de la impresora térmica</label>
+              <select id="cf-ancho">
+                <option value="58">58 mm (bobina angosta)</option>
+                <option value="80">80 mm (bobina ancha)</option>
+              </select>
+            </div>
+            <div class="texto-suave" style="font-size:13px;margin-bottom:12px">Pon la impresora como <b>predeterminada</b> de Windows y verifica antes de la primera venta.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="cf-probar">Probar impresión de boleta</button>
+            </div>
+          </div>
+
+          <div class="card mt16">
             <div class="seccion-titulo" style="margin-top:0">Acerca de</div>
             <div style="font-size:14px;line-height:1.7;color:var(--texto-suave)">
               <b style="color:var(--texto)">JZAC ERP</b> · versión web 1.0<br>
@@ -105,6 +120,17 @@
 
     document.getElementById('cf-contacto').addEventListener('click', () =>
       JZAC.negocio.wha('Hola, soy usuario de JZAC ERP. Necesito ayuda.'));
+
+    document.getElementById('cf-ancho').value = localStorage.getItem('jzac_ancho_boleta') === '80' ? '80' : '58';
+    document.getElementById('cf-ancho').addEventListener('change', (e) => {
+      localStorage.setItem('jzac_ancho_boleta', e.target.value === '80' ? '80' : '58');
+      JZAC.ui.toast('Ancho de boleta guardado.', 'bien');
+    });
+    document.getElementById('cf-probar').addEventListener('click', async () => {
+      const usr = await JZAC.auth.usuarioActual();
+      if (!JZAC.impresion) { JZAC.ui.toast('Carga el sistema primero.', 'mal'); return; }
+      JZAC.ui.imprimirHTML(JZAC.impresion.test(usr) + '<div style="margin-top:8px"></div>', JZAC.impresion.css(JZAC.impresion.ancho()));
+    });
   }
 
   window.JZAC = window.JZAC || {};

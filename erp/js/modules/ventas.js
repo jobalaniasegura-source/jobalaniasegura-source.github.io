@@ -93,11 +93,14 @@
     });
   }
 
-  // ---------- boleta termica (58mm) ----------
-  const CSS_RECIBO = `
+  // ---------- boleta termica (58mm / 80mm) ----------
+  function cssRecibo(ancho) {
+    const es80 = ancho === '80';
+    const mm = es80 ? '80mm' : '58mm';
+    return `
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Courier New', monospace; font-size: 11px; color: #000; }
-    .rec { width: 58mm; margin: 0 auto; padding: 1mm 0; }
+    body { margin: 0; font-family: 'Courier New', monospace; font-size: ${es80 ? '12px' : '11px'}; color: #000; }
+    .rec { width: ${es80 ? '76mm' : '58mm'}; margin: 0 auto; padding: 1mm 0; }
     .cen { text-align: center; }
     .sep { border-top: 1px dashed #000; margin: 2px 0; }
     table { width: 100%; border-collapse: collapse; }
@@ -106,8 +109,12 @@
     .r { text-align: right; }
     .sum { display: flex; justify-content: space-between; font-weight: 700; }
     .total { font-size: 13px; }
-    @media print { @page { margin: 3mm; } }
+    @media print { @page { size: ${mm} auto; margin: 3mm; } }
   `;
+  }
+  function getAnchoBoleta() {
+    return localStorage.getItem('jzac_ancho_boleta') === '80' ? '80' : '58';
+  }
 
   function crearBoletaHTML(u, v, det) {
     const c = (t) => `<div class="cen">${t}</div>`;
@@ -149,12 +156,7 @@
   }
 
   function imprimirBoleta(u, v, det) {
-    const w = window.open('', '_blank', 'width=420,height=600');
-    if (!w) { JZAC.ui.toast('Permite las ventanas emergentes para imprimir la boleta.', 'mal'); return; }
-    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Boleta ${JZAC.ui.esc(v.boleta)}</title><style>${CSS_RECIBO}</style></head><body>${crearBoletaHTML(u, v, det)}</body></html>`);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { try { w.print(); } catch (e) { } }, 300);
+    JZAC.ui.imprimirHTML(crearBoletaHTML(u, v, det), cssRecibo(getAnchoBoleta()));
   }
 
   // ---------- vista: listado ----------
@@ -495,15 +497,20 @@
     const inDescuento = document.getElementById('in-descuento');
     inDescuento.addEventListener('input', actualizaTot);
     let recibidoManual = false;
+    function sincPanelPago() {
+      const m = document.getElementById('sel-metodo').value;
+      document.getElementById('panel-efectivo').style.display = m === 'Efectivo' ? '' : 'none';
+      document.getElementById('panel-mixto').style.display = m === 'Mixto' ? '' : 'none';
+    }
     const inRecibido = document.getElementById('in-recibido');
     inRecibido.addEventListener('input', () => { recibidoManual = true; actualizaTot(); });
     document.getElementById('sel-metodo').addEventListener('change', () => {
       const m = document.getElementById('sel-metodo').value;
-      document.getElementById('panel-efectivo').style.display = m === 'Efectivo' ? '' : 'none';
-      document.getElementById('panel-mixto').style.display = m === 'Mixto' ? '' : 'none';
+      sincPanelPago();
       if (m === 'Efectivo') { recibidoManual = false; }
       actualizaTot();
     });
+    sincPanelPago(); // default Efectivo: el panel de recibido queda visible desde el inicio
     document.getElementById('in-efectivo').addEventListener('input', actualizaTot);
     document.getElementById('sel-metodo2').addEventListener('change', actualizaTot);
     document.getElementById('chk-factura').addEventListener('change', () => {
@@ -603,5 +610,21 @@
 
   window.JZAC = window.JZAC || {};
   window.JZAC.modulos = window.JZAC.modulos || {};
+  // Boleta de prueba para verificar la impresora antes de vender.
+  function boletaTest(u) {
+    return crearBoletaHTML(u, {
+      boleta: 'B001-TEST', esFactura: false, cliente: 'Cliente de prueba', fecha: Date.now(),
+      subtotal: 18.25, descuento: 0, total: 18.25, metodoPago: 'Efectivo', recibido: 20, vuelto: 1.75
+    }, [
+      { producto: 'Arroz 1kg', cantidad: 2, precio: 4.4, total: 8.8, esPeso: false },
+      { producto: 'Tomate', cantidad: 1.5, precio: 3.5, total: 5.25, esPeso: true },
+      { producto: 'Aceite 1L', cantidad: 1, precio: 4.2, total: 4.2, esPeso: false }
+    ]);
+  }
+  window.JZAC.impresion = {
+    css: (ancho) => cssRecibo(ancho),
+    ancho: getAnchoBoleta,
+    test: boletaTest
+  };
   window.JZAC.modulos.ventas = { render };
 })();

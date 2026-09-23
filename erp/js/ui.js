@@ -190,12 +190,64 @@ document.addEventListener('focusin', (e) => {
   if (t && t.matches && t.matches('input[type=number]') && t.value !== '') {
     t.select();
   }
+  // Lector USB: en la pantalla de caja, si el foco cae en un botón o en el
+  // fondo (no en un campo editable ni dentro de un modal), volver al escáner
+  // para que el código escaneado no se "teclee" en otro control.
+  const escapable = () => {
+    if (!e.target || !e.target.matches) return;
+    const esc = document.getElementById('scan-rapido');
+    const ruta = (window.JZAC && JZAC.rutaSeg) ? JZAC.rutaSeg() : [];
+    if (!esc || ruta[0] !== 'ventas') return;
+    if (e.target.closest('input, select, textarea')) return;
+    if (document.querySelector('#modal-root .modal-fondo')) return;
+    if (esc.getRootNode().activeElement !== esc) esc.focus();
+  };
+  escapable();
 });
+// Algunos clics (ej. sobre un div) hacen blur del escáner sin disparar
+// 'focusin' en el nuevo elemento; lo devolvemos con 'focusout'.
+// Nota: en el instante del 'focusout', 'activeElement' aún no muestra el
+// destino, por eso la comprobación se hace dentro del requestAnimationFrame.
+document.addEventListener('focusout', (e) => {
+  if (!e.target || e.target.id !== 'scan-rapido') return;
+  if ((window.JZAC && JZAC.rutaSeg ? JZAC.rutaSeg() : [])[0] !== 'ventas') return;
+  if (document.querySelector('#modal-root .modal-fondo')) return;
+  window.requestAnimationFrame(() => {
+    const esc = document.getElementById('scan-rapido');
+    if (!esc) return;
+    if (document.querySelector('#modal-root .modal-fondo')) return;
+    const a = document.activeElement;
+    if (a && a.closest && a.closest('input, select, textarea') && a !== esc) return;
+    esc.focus();
+  });
+}, true);
 window.JZAC.negocio = {
   nombreNorm: (n) => String(n || '').trim().replace(/\s+/g, ' ').toUpperCase(),
   nombreClave: (n) => String(n || '').trim().toLowerCase().replace(/\s+/g, ' '),
   imprimir: () => { try { window.print(); } catch (e) { ui.toast('No se pudo imprimir', 'mal'); } },
   wha: (texto) => {
     window.open('https://wa.me/51929068219?text=' + encodeURIComponent(texto), '_blank');
+  }
+};
+
+// Impresión confiable desde la web: usa un iframe oculto, sin ventanas
+// emergentes (no las bloquea el navegador) y sin abrir pestañas.
+window.JZAC.ui.imprimirHTML = function (html, cssDoc) {
+  let f = document.getElementById('jzac-iframe-imp');
+  if (!f) {
+    f = document.createElement('iframe');
+    f.id = 'jzac-iframe-imp';
+    f.style.cssText = 'position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+    document.body.appendChild(f);
+  }
+  try {
+    const doc = f.contentDocument;
+    doc.open();
+    doc.write('<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Impresión JZAC</title><style>' + (cssDoc || '') + '</style></head><body>' + html + '</body></html>');
+    doc.close();
+    f.contentWindow.focus();
+    setTimeout(() => { try { f.contentWindow.print(); } catch (e) { ui.toast('No se pudo imprimir. Revisa la impresora.', 'mal'); } }, 250);
+  } catch (e) {
+    ui.toast('No se pudo imprimir. Revisa la impresora.', 'mal');
   }
 };
