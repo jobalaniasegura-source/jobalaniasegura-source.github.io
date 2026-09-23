@@ -33,7 +33,7 @@
             ${productos.map((p) => {
               const alerta = Number(p.stock || 0) <= Number(p.stockMin || 0);
               return `<tr>
-                <td class="negrita">${JZAC.ui.esc(p.nombre)}</td>
+                <td class="negrita">${JZAC.ui.esc(p.nombre)}${p.ventaPeso ? ' <span class="badge badge-azul">por kg</span>' : ''}</td>
                 <td>${JZAC.ui.esc(p.codigo || p.barra || '—')}</td>
                 <td class="monto">${JZAC.ui.dinero(p.precioCompra)}</td>
                 <td class="monto">${JZAC.ui.dinero(p.precioVenta)}</td>
@@ -89,6 +89,11 @@
     const m = JZAC.ui.modal(`
       <div class="modal-hdr"><h3>${edicion ? 'Editar producto' : 'Nuevo producto'}</h3><button class="cierre" data-cerrar>×</button></div>
       <div class="campo"><label>Nombre del producto</label><input id="f-nombre" value="${JZAC.ui.esc(p ? p.nombre : '')}"></div>
+      <div class="campo"><label>Se vende por</label>
+        <select id="f-ventatipo">
+          <option value="unidad">Unidad (paquete, botella, caja...)</option>
+          <option value="peso">Peso (kg) — frutas, verduras, granel</option>
+        </select>
       <div class="scan-btn-fila">
         <div class="campo"><label>Código / QR del producto (opcional)</label><input id="f-codigo" placeholder="Código de barras o QR" value="${JZAC.ui.esc(p ? (p.codigo || p.barra || '') : '')}"></div>
         <button class="btn" id="escanear-codigo" title="Escanear código de barras o QR"> Escanear</button>
@@ -105,6 +110,8 @@
       `<button class="btn" data-cerrar>Cancelar</button>
        <button class="btn btn-primario" id="guardar-prod">${edicion ? 'Guardar cambios' : 'Agregar producto'}</button>`);
 
+    if (p && p.ventaPeso) { m.raiz.querySelector('#f-ventatipo').value = 'peso'; }
+
     m.raiz.querySelector('#escanear-codigo').addEventListener('click', async () => {
       const res = await JZAC.escanear({ titulo: 'Escanear código del producto' });
       if (res && res.texto) {
@@ -118,6 +125,7 @@
       if (!nombre) { JZAC.ui.toast('Escribe el nombre del producto.', 'mal'); return; }
       const obj = {
         nombre,
+        ventaPeso: document.getElementById('f-ventatipo').value === 'peso',
         codigo: document.getElementById('f-codigo').value.trim(),
         precioCompra: Math.max(0, Number(document.getElementById('f-compra').value || 0)),
         precioVenta: Math.max(0, Number(document.getElementById('f-venta').value || 0)),

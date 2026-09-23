@@ -65,6 +65,10 @@
         <div class="campo"><label>Teléfono</label><input id="c-tel" value="${JZAC.ui.esc(c ? (c.telefono || '') : '')}"></div>
       </div>
       <div class="campo"><label>Dirección</label><input id="c-direc" value="${JZAC.ui.esc(c ? (c.direccion || '') : '')}"></div>
+      <div class="fila">
+        <div class="campo"><label>RUC (opcional, para facturas)</label><input id="c-ruc" inputmode="numeric" maxlength="11" placeholder="Ej.: 20123456789" value="${JZAC.ui.esc(c ? (c.ruc || '') : '')}"></div>
+        <div class="campo"><label>Razón social</label><input id="c-razon" value="${JZAC.ui.esc(c ? (c.razonSocial || '') : '')}"></div>
+      </div>
       <div class="campo"><label>Notas</label><textarea rows="2" id="c-notas">${JZAC.ui.esc(c ? (c.notas || '') : '')}</textarea></div>`,
       `<button class="btn" data-cerrar>Cancelar</button>
        <button class="btn btn-primario" id="guardar-cli">${edicion ? 'Guardar cambios' : 'Agregar cliente'}</button>`);
@@ -77,6 +81,8 @@
         whatsapp: document.getElementById('c-wha').value.trim(),
         telefono: document.getElementById('c-tel').value.trim(),
         direccion: document.getElementById('c-direc').value.trim(),
+        ruc: document.getElementById('c-ruc').value.trim(),
+        razonSocial: document.getElementById('c-razon').value.trim(),
         notas: document.getElementById('c-notas').value.trim(),
         creado: Date.now()
       };

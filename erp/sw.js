@@ -1,4 +1,4 @@
-const CACHE = 'jzac-erp-v1.3.0';
+const CACHE = 'jzac-erp-v1.4.0';
 const BASE = './';
 const ASSETS = [
   './',
