@@ -42,11 +42,16 @@
   }
 
   // ---------- modal propio (control total de la cámara) ----------
+  // Vive en un contenedor aparte (document.body) para NO reemplazar el
+  // modal que pudiera estar abierto debajo (ej. el formulario de producto
+  // o de nueva venta). Así, al escanear y volver, el formulario sigue ahí.
   function modalPropio(html, pie) {
-    const raiz = document.getElementById('modal-root');
+    const raiz = document.createElement('div');
+    raiz.id = 'scan-raiz';
     raiz.innerHTML = `<div class="modal-fondo"><div class="modal amplio">${html}${pie ? `<div class="modal-pie">${pie}</div>` : ''}</div></div>`;
+    document.body.appendChild(raiz);
     const fondo = raiz.firstElementChild;
-    return { raiz, fondo, cerrar: () => { raiz.innerHTML = ''; } };
+    return { raiz, fondo, cerrar: () => { raiz.remove(); } };
   }
 
   /**

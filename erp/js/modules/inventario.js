@@ -53,10 +53,15 @@
     }
     document.getElementById('nuevo-producto').addEventListener('click', () => modalProducto(null, () => pintaProductos(cont)));
     document.getElementById('escanear-inv').addEventListener('click', async () => {
-      const res = await JZAC.escanear({ titulo: 'Buscar producto por código' });
+      const res = await JZAC.escanear({ titulo: 'Buscar o crear producto por código' });
       if (!res || !res.texto) return;
       const p = JZAC.productoPorCodigo(productos, res.texto);
-      if (!p) { JZAC.ui.toast('No hay producto con ese código.', 'mal'); return; }
+      if (!p) {
+        // El código no existe: abrimos el registro para crearlo con el código ya listo
+        JZAC.ui.toast(`El código "${res.texto}" no existe. Completa los datos del nuevo producto.`, 'información');
+        modalProducto(null, () => pintaProductos(cont), String(res.texto));
+        return;
+      }
       modalProducto(p, () => pintaProductos(cont));
     });
     document.getElementById('ver-mermas').addEventListener('click', () => JZAC.ir('inventario/mermas'));
@@ -84,7 +89,7 @@
     </div>`;
   }
 
-  function modalProducto(p, refrescar) {
+  function modalProducto(p, refrescar, prefillCodigo) {
     const edicion = !!p;
     const m = JZAC.ui.modal(`
       <div class="modal-hdr"><h3>${edicion ? 'Editar producto' : 'Nuevo producto'}</h3><button class="cierre" data-cerrar>×</button></div>
@@ -95,7 +100,7 @@
           <option value="peso">Peso (kg) — frutas, verduras, granel</option>
         </select>
       <div class="scan-btn-fila">
-        <div class="campo"><label>Código / QR del producto (opcional)</label><input id="f-codigo" placeholder="Código de barras o QR" value="${JZAC.ui.esc(p ? (p.codigo || p.barra || '') : '')}"></div>
+        <div class="campo"><label>Código / QR del producto (opcional)</label><input id="f-codigo" placeholder="Código de barras o QR" value="${JZAC.ui.esc(p ? (p.codigo || p.barra || '') : (prefillCodigo || ''))}"></div>
         <button class="btn" id="escanear-codigo" title="Escanear código de barras o QR"> Escanear</button>
       </div>
       <div class="fila">
