@@ -71,10 +71,10 @@
             <button class="btn" data-ir="reportes"> Ver reportes</button>
           </div>
           <div class="seccion-titulo mt16">Resumen general</div>
-          <div style="font-size:14px;color:var(--texto-suave);line-height:1.8">
-            Ventas realizadas hoy: <b style="color:var(--texto)">${ventasHoy.length}</b><br>
-            Valor del inventario: <b style="color:var(--texto)">${JZAC.ui.dinero(valorInventario)}</b><br>
-            Productos registrados: <b style="color:var(--texto)">${productos.length}</b>
+          <div class="resumen-general">
+            <div class="resumen-fila"><span>Ventas realizadas hoy</span><b>${ventasHoy.length}</b></div>
+            <div class="resumen-fila"><span>Valor del inventario</span><b>${JZAC.ui.dinero(valorInventario)}</b></div>
+            <div class="resumen-fila"><span>Productos registrados</span><b>${productos.length}</b></div>
           </div>
         </div>
       </div>`;
