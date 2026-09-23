@@ -76,6 +76,60 @@
     });
   }
 
+  // ---------- boleta termica (58mm) ----------
+  const CSS_RECIBO = `
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Courier New', monospace; font-size: 11px; color: #000; }
+    .rec { width: 58mm; margin: 0 auto; padding: 1mm 0; }
+    .cen { text-align: center; }
+    .sep { border-top: 1px dashed #000; margin: 2px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-weight: 700; border-bottom: 1px solid #000; }
+    td, th { padding: 1px 0; }
+    .r { text-align: right; }
+    .sum { display: flex; justify-content: space-between; font-weight: 700; }
+    .total { font-size: 13px; }
+    @media print { @page { margin: 3mm; } }
+  `;
+
+  function crearBoletaHTML(u, v, det) {
+    const c = (t) => `<div class="cen">${t}</div>`;
+    const filas = det.map((d) =>
+      `<tr><td>${JZAC.ui.esc(d.producto)}${Number(d.cantidad) > 1 ? ` x${JZAC.ui.n(d.cantidad)}` : ''}</td><td class="r">${JZAC.ui.dinero(d.precio)}</td><td class="r">${JZAC.ui.dinero(d.total)}</td></tr>`
+    ).join('');
+    return `
+      <div class="rec">
+        ${c(`<b>${JZAC.ui.esc(u.nombreNegocio || u.nombre)}</b>`)}
+        ${c(JZAC.ui.esc(u.ruc ? 'RUC: ' + u.ruc : (u.nombre || '')))}
+        ${c(JZAC.ui.fh(v.fecha))}
+        <div class="sep"></div>
+        ${c(`<b>BOLETA ${JZAC.ui.esc(v.boleta)}</b>`)}
+        ${c('Cliente: ' + JZAC.ui.esc(v.cliente || '—'))}
+        ${c('Pago: ' + JZAC.ui.esc(v.metodoPago || 'Efectivo'))}
+        <div class="sep"></div>
+        <table>
+          <tr><th>Producto</th><th class="r">Pcio</th><th class="r">Sub</th></tr>
+          ${filas}
+        </table>
+        <div class="sep"></div>
+        <div class="sum"><span>Subtotal</span><span>${JZAC.ui.dinero(v.subtotal)}</span></div>
+        ${v.descuento ? `<div class="sum"><span>Descuento</span><span>-${JZAC.ui.dinero(v.descuento)}</span></div>` : ''}
+        <div class="sum total"><span>TOTAL</span><span>${JZAC.ui.dinero(v.total)}</span></div>
+        <div class="sep"></div>
+        ${c('¡Gracias por su compra!')}
+        ${c('JZAC ERP · Software que trabaja por tu negocio')}
+      </div>`;
+  }
+
+  function imprimirBoleta(u, v, det) {
+    const w = window.open('', '_blank', 'width=420,height=600');
+    if (!w) { JZAC.ui.toast('Permite las ventanas emergentes para imprimir la boleta.', 'mal'); return; }
+    w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Boleta ${JZAC.ui.esc(v.boleta)}</title><style>${CSS_RECIBO}</style></head><body>${crearBoletaHTML(u, v, det)}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { try { w.print(); } catch (e) { } }, 300);
+  }
+
   // ---------- vista: listado ----------
   async function vistaLista(cont, u) {
     const ventas = await JZAC.db.listar('ventas');
@@ -117,7 +171,7 @@
     cont.querySelectorAll('[data-ver]').forEach((b) => b.addEventListener('click', async () => {
       const v = ventas.find((x) => x.id === Number(b.dataset.ver));
       const det = detv.filter((d) => d.ventaId === v.id);
-      detalleModal(v, det);
+      detalleModal(u, v, det);
     }));
     cont.querySelectorAll('[data-anular]').forEach((b) => b.addEventListener('click', async () => {
       const v = ventas.find((x) => x.id === Number(b.dataset.anular));
@@ -129,7 +183,7 @@
     }));
   }
 
-  function detalleModal(v, det) {
+  function detalleModal(u, v, det) {
     const filas = det.map((d) => `
       <tr><td>${JZAC.ui.esc(d.producto)}</td><td class="center">${JZAC.ui.n(d.cantidad)}</td><td class="monto">${JZAC.ui.dinero(d.precio)}</td><td class="monto">${JZAC.ui.dinero(d.total)}</td></tr>`).join('');
     const m = JZAC.ui.modal(`
@@ -147,8 +201,10 @@
         <div class="derecha negrita" style="font-size:16px">TOTAL: ${JZAC.ui.dinero(v.total)}</div>
       </div>`,
       `<button class="btn" data-cerrar>Cerrar</button>
+       <button class="btn btn-dorado" id="imprimir-boleta">Imprimir boleta</button>
        <button class="btn btn-whatsapp" id="wha-boleta">Enviar por WhatsApp</button>`,
       true);
+    m.raiz.querySelector('#imprimir-boleta').addEventListener('click', () => imprimirBoleta(u, v, det));
     m.raiz.querySelector('#wha-boleta').addEventListener('click', () => {
       const lineas = det.map((d) => `${d.cantidad} × ${d.producto}: ${JZAC.ui.dinero(d.total)}`).join('\n');
       JZAC.negocio.wha(`BOLETA ${v.boleta}\nFecha: ${JZAC.ui.fh(v.fecha)}\nCliente: ${v.cliente || '—'}\n\n${lineas}\n\nTOTAL: ${JZAC.ui.dinero(v.total)}\nGracias por su compra.`);
@@ -174,14 +230,20 @@
           <div class="seccion-titulo" style="margin-top:0">1 · Productos</div>
           <div class="scan-btn-fila" style="margin-bottom:13px">
             <div class="campo" style="margin-bottom:0">
+              <label>Código / QR del producto</label>
+              <input id="scan-rapido" placeholder="Escanea con el lector o escribe el código y Enter..." autocomplete="off" style="font-size:14px">
+            </div>
+            <button class="btn" id="escanear-venta" title="Escanear con la cámara del celular"> Escanear cámara</button>
+          </div>
+          <div class="fila">
+            <div class="campo">
               <label>Producto</label>
               <select id="sel-prod">${optionesMontaje()}</select>
             </div>
-            <button class="btn" id="escanear-venta" title="Escanear código de barras o QR"> Escanear</button>
-          </div>
-          <div class="campo" style="margin-bottom:13px">
-            <label>Precio unit. (S/)</label>
-            <input type="number" id="in-precio" step="0.01" min="0" value="0">
+            <div class="campo">
+              <label>Precio unit. (S/)</label>
+              <input type="number" id="in-precio" step="0.01" min="0" value="0">
+            </div>
           </div>
           <div class="fila">
             <div class="campo" style="display:flex;align-items:flex-end;gap:8px">
@@ -247,6 +309,7 @@
         items.splice(Number(b.dataset.quit), 1);
         pintaItems();
       }));
+      actualizaTot();
     }
 
     document.getElementById('volver').addEventListener('click', () => JZAC.ir('ventas'));
@@ -272,20 +335,48 @@
       pintaItems();
     });
 
+    // ---------- lector de barras USB (escribe codigo + Enter) ----------
+    const scanRapido = document.getElementById('scan-rapido');
+    function agregaPorCodigo(texto) {
+      const t = String(texto || '').trim();
+      if (!t) return;
+      const p = JZAC.productoPorCodigo(productos, t);
+      if (!p) { JZAC.ui.toast(`Código no encontrado: ${t}`, 'mal'); }
+      else if (Number(p.stock) < 1) { JZAC.ui.toast(`${p.nombre}: sin stock.`, 'mal'); }
+      else {
+        const existente = items.find((it) => it.productoId === p.id);
+        if (existente) { existente.cantidad += 1; }
+        else { items.push({ productoId: p.id, nombre: p.nombre, cantidad: 1, precio: Number(p.precioVenta || 0), costo: Number(p.precioCompra || 0) }); }
+        pintaItems();
+        JZAC.ui.toast(`${p.nombre} +1`, 'bien');
+      }
+    }
+    if (scanRapido) {
+      scanRapido.focus();
+      scanRapido.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clearTimeout(timerScan);
+          agregaPorCodigo(scanRapido.value);
+          scanRapido.value = '';
+        }
+      });
+      // el lector puede no terminar en Enter; agrega tras una pausa breve
+      let timerScan = null;
+      scanRapido.addEventListener('input', () => {
+        clearTimeout(timerScan);
+        timerScan = setTimeout(() => {
+          const t = scanRapido.value.trim();
+          if (t) { agregaPorCodigo(t); scanRapido.value = ''; }
+        }, 220);
+      });
+    }
+
     document.getElementById('escanear-venta').addEventListener('click', async () => {
       const res = await JZAC.escanear({ titulo: 'Escanear producto' });
       if (!res || !res.texto) return;
-      const p = JZAC.productoPorCodigo(productos, res.texto);
-      if (!p) { JZAC.ui.toast('No hay producto con ese código.', 'mal'); return; }
-      document.getElementById('sel-prod').value = String(p.id);
-      inPrecio.value = p.precioVenta;
-      if (Number(p.stock) < 1) { JZAC.ui.toast('Producto sin stock.', 'mal'); return; }
-      const existente = items.find((it) => it.productoId === p.id);
-      const precio = Number(inPrecio.value || 0) || Number(p.precioVenta);
-      if (existente) { existente.cantidad += 1; }
-      else { items.push({ productoId: p.id, nombre: p.nombre, cantidad: 1, precio, costo: Number(p.precioCompra || 0) }); }
-      pintaItems();
-      JZAC.ui.toast(`Producto agregado por escáner: ${p.nombre}.`, 'bien');
+      if (scanRapido) scanRapido.value = res.texto;
+      agregaPorCodigo(res.texto);
     });
 
     document.getElementById('in-descuento').addEventListener('input', actualizaTot);
@@ -299,8 +390,16 @@
       btn.disabled = true;
       try {
         const res = await guardarVenta(u, items, cli, metodo, dsc);
-        JZAC.ui.toast(`Venta registrada: ${res.boleta} · ${JZAC.ui.dinero(res.total)}`, 'bien');
-        JZAC.ir('ventas');
+        const sub = items.reduce((a, it) => a + Number(it.precio) * Number(it.cantidad), 0);
+        const vv = { boleta: res.boleta, fecha: Date.now(), cliente: cli, metodoPago: metodo, subtotal: Math.round(sub * 100) / 100, descuento: Math.round(Number(dsc || 0) * 100) / 100, total: res.total };
+        const detP = items.map((it) => ({ producto: it.nombre, cantidad: it.cantidad, precio: it.precio, total: Math.round(it.precio * it.cantidad * 100) / 100 }));
+        const m = JZAC.ui.modal(
+          `<div class="modal-hdr"><h3>Venta registrada</h3><button class="cierre" data-cerrar>×</button></div>
+           <p style="margin:0">Boleta <b>${JZAC.ui.esc(res.boleta)}</b><br>Total: <b style="font-size:18px">${JZAC.ui.dinero(res.total)}</b></p>`,
+          `<button class="btn btn-primario" id="cont-luego">Continuar</button>
+           <button class="btn btn-dorado" id="imp-ahora">Imprimir boleta</button>`);
+        m.raiz.querySelector('#imp-ahora').addEventListener('click', () => imprimirBoleta(u, vv, detP));
+        m.raiz.querySelector('#cont-luego').addEventListener('click', () => { m.cerrar(); JZAC.ir('ventas'); });
       } catch (e) {
         JZAC.ui.toast('Error al guardar la venta.', 'mal');
         console.error(e);
