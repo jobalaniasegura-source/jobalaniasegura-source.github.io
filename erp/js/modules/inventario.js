@@ -17,7 +17,10 @@
       </div>
 
       <div class="panel-hdr mt16">
-        <button class="btn" id="ver-mermas">Ver mermas</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="ver-mermas">Ver mermas</button>
+          <button class="btn" id="escanear-inv" title="Escanear código para encontrar un producto"> Escanear</button>
+        </div>
         <button class="btn btn-primario" id="nuevo-producto">+ Agregar producto</button>
       </div>
 
@@ -26,11 +29,12 @@
       ${productos.length === 0
         ? JZAC.ui.vacio('Inventario vacío', 'Agrega tu primer producto.', '<button class="btn btn-primario mt16" id="nuevo-producto2">+ Agregar producto</button>')
         : `<div class="tabla-wrap"><table>
-            <tr><th>Producto</th><th class="monto">Costo</th><th class="monto">Precio</th><th class="monto">Stock</th><th class="monto">Mínimo</th><th>Vence</th><th></th></tr>
+            <tr><th>Producto</th><th>Código</th><th class="monto">Costo</th><th class="monto">Precio</th><th class="monto">Stock</th><th class="monto">Mínimo</th><th>Vence</th><th></th></tr>
             ${productos.map((p) => {
               const alerta = Number(p.stock || 0) <= Number(p.stockMin || 0);
               return `<tr>
                 <td class="negrita">${JZAC.ui.esc(p.nombre)}</td>
+                <td>${JZAC.ui.esc(p.codigo || p.barra || '—')}</td>
                 <td class="monto">${JZAC.ui.dinero(p.precioCompra)}</td>
                 <td class="monto">${JZAC.ui.dinero(p.precioVenta)}</td>
                 <td class="monto">${alerta ? `<span class="badge badge-rojo">${JZAC.ui.n(p.stock)}</span>` : JZAC.ui.n(p.stock)}</td>
@@ -48,6 +52,13 @@
       document.getElementById('nuevo-producto2').addEventListener('click', () => modalProducto(null, () => pintaProductos(cont)));
     }
     document.getElementById('nuevo-producto').addEventListener('click', () => modalProducto(null, () => pintaProductos(cont)));
+    document.getElementById('escanear-inv').addEventListener('click', async () => {
+      const res = await JZAC.escanear({ titulo: 'Buscar producto por código' });
+      if (!res || !res.texto) return;
+      const p = JZAC.productoPorCodigo(productos, res.texto);
+      if (!p) { JZAC.ui.toast('No hay producto con ese código.', 'mal'); return; }
+      modalProducto(p, () => pintaProductos(cont));
+    });
     document.getElementById('ver-mermas').addEventListener('click', () => JZAC.ir('inventario/mermas'));
     cont.querySelectorAll('[data-editar]').forEach((b) => b.addEventListener('click', () => {
       const p = productos.find((x) => x.id === Number(b.dataset.editar));
@@ -78,6 +89,10 @@
     const m = JZAC.ui.modal(`
       <div class="modal-hdr"><h3>${edicion ? 'Editar producto' : 'Nuevo producto'}</h3><button class="cierre" data-cerrar>×</button></div>
       <div class="campo"><label>Nombre del producto</label><input id="f-nombre" value="${JZAC.ui.esc(p ? p.nombre : '')}"></div>
+      <div class="scan-btn-fila">
+        <div class="campo"><label>Código / QR del producto (opcional)</label><input id="f-codigo" placeholder="Código de barras o QR" value="${JZAC.ui.esc(p ? (p.codigo || p.barra || '') : '')}"></div>
+        <button class="btn" id="escanear-codigo" title="Escanear código de barras o QR"> Escanear</button>
+      </div>
       <div class="fila">
         <div class="campo"><label>Precio compra (S/)</label><input type="number" step="0.01" min="0" id="f-compra" value="${p ? p.precioCompra : ''}"></div>
         <div class="campo"><label>Precio venta (S/)</label><input type="number" step="0.01" min="0" id="f-venta" value="${p ? p.precioVenta : ''}"></div>
@@ -90,11 +105,20 @@
       `<button class="btn" data-cerrar>Cancelar</button>
        <button class="btn btn-primario" id="guardar-prod">${edicion ? 'Guardar cambios' : 'Agregar producto'}</button>`);
 
+    m.raiz.querySelector('#escanear-codigo').addEventListener('click', async () => {
+      const res = await JZAC.escanear({ titulo: 'Escanear código del producto' });
+      if (res && res.texto) {
+        document.getElementById('f-codigo').value = res.texto;
+        JZAC.ui.toast('Código capturado.', 'bien');
+      }
+    });
+
     m.raiz.querySelector('#guardar-prod').addEventListener('click', async () => {
       const nombre = document.getElementById('f-nombre').value.trim();
       if (!nombre) { JZAC.ui.toast('Escribe el nombre del producto.', 'mal'); return; }
       const obj = {
         nombre,
+        codigo: document.getElementById('f-codigo').value.trim(),
         precioCompra: Math.max(0, Number(document.getElementById('f-compra').value || 0)),
         precioVenta: Math.max(0, Number(document.getElementById('f-venta').value || 0)),
         stock: Math.max(0, Number(document.getElementById('f-stock').value || 0)),

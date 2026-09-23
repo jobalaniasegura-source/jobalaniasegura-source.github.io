@@ -172,15 +172,16 @@
       <div class="grid grid-2">
         <div class="card">
           <div class="seccion-titulo" style="margin-top:0">1 · Productos</div>
-          <div class="fila">
-            <div class="campo">
+          <div class="scan-btn-fila" style="margin-bottom:13px">
+            <div class="campo" style="margin-bottom:0">
               <label>Producto</label>
               <select id="sel-prod">${optionesMontaje()}</select>
             </div>
-            <div class="campo">
-              <label>Precio unit. (S/)</label>
-              <input type="number" id="in-precio" step="0.01" min="0" value="0">
-            </div>
+            <button class="btn" id="escanear-venta" title="Escanear código de barras o QR"> Escanear</button>
+          </div>
+          <div class="campo" style="margin-bottom:13px">
+            <label>Precio unit. (S/)</label>
+            <input type="number" id="in-precio" step="0.01" min="0" value="0">
           </div>
           <div class="fila">
             <div class="campo" style="display:flex;align-items:flex-end;gap:8px">
@@ -269,6 +270,22 @@
         items.push({ productoId: p.id, nombre: p.nombre, cantidad: cant, precio, costo: Number(p.precioCompra || 0) });
       }
       pintaItems();
+    });
+
+    document.getElementById('escanear-venta').addEventListener('click', async () => {
+      const res = await JZAC.escanear({ titulo: 'Escanear producto' });
+      if (!res || !res.texto) return;
+      const p = JZAC.productoPorCodigo(productos, res.texto);
+      if (!p) { JZAC.ui.toast('No hay producto con ese código.', 'mal'); return; }
+      document.getElementById('sel-prod').value = String(p.id);
+      inPrecio.value = p.precioVenta;
+      if (Number(p.stock) < 1) { JZAC.ui.toast('Producto sin stock.', 'mal'); return; }
+      const existente = items.find((it) => it.productoId === p.id);
+      const precio = Number(inPrecio.value || 0) || Number(p.precioVenta);
+      if (existente) { existente.cantidad += 1; }
+      else { items.push({ productoId: p.id, nombre: p.nombre, cantidad: 1, precio, costo: Number(p.precioCompra || 0) }); }
+      pintaItems();
+      JZAC.ui.toast(`Producto agregado por escáner: ${p.nombre}.`, 'bien');
     });
 
     document.getElementById('in-descuento').addEventListener('input', actualizaTot);
