@@ -194,9 +194,38 @@
     const productos = (await JZAC.db.listar('productos')).sort((a, b) => a.nombre.localeCompare(b.nombre));
     let lineas = [{ producto: '', cantidad: 1, precio: 0 }];
 
-    const sugeridos = (await JZAC.db.listar('productos'))
-      .filter((pp) => Number(pp.stock || 0) <= Number(pp.stockMin || 0))
-      .slice(0, 8);
+    // ---- pedido sugerido automatico: stock minimo + ventas de los ultimos 30 dias ----
+    const ventas = await JZAC.db.listar('ventas');
+    const dvAll = await JZAC.db.listar('detalle_venta');
+    const fVenta = {};
+    ventas.forEach((v) => { fVenta[v.id] = v.fecha; });
+    const hace30 = Date.now() - 30 * 86400000;
+    const unid = {};
+    dvAll.forEach((d) => {
+      if (!fVenta[d.ventaId] || fVenta[d.ventaId] < hace30) return;
+      const k = JZAC.negocio.nombreNorm(d.producto);
+      unid[k] = (unid[k] || 0) + Number(d.cantidad);
+    });
+    const sugerencias = productos
+      .map((p) => {
+        const stock = Number(p.stock || 0);
+        const min = Number(p.stockMin || 0);
+        const k = JZAC.negocio.nombreNorm(p.nombre);
+        const promSem = Math.round((unid[k] || 0) / 30 * 7 * 10) / 10;
+        return { p, stock, min, promSem, sug: 0 };
+      })
+      .map((s) => {
+        const porVentas = Math.ceil(s.promSem);
+        const porMin = Math.ceil(Math.max(0, s.min * 2 - s.stock));
+        const semana = Math.ceil(s.promSem);
+        // Suena cuando ya se pasó del mínimo o el stock solo alcanza ~1 semana de ventas
+        const debeReponer = s.stock <= s.min || (semana > 0 && s.stock <= semana);
+        s.sug = debeReponer ? Math.max(1, porVentas, porMin) : 0;
+        return s;
+      })
+      .filter((s) => s.sug > 0)
+      .sort((a, b) => b.sug - a.sug)
+      .slice(0, 10);
 
     cont.innerHTML = `
       <button class="btn btn-sm" id="volver-ped" style="margin-bottom:14px">← Volver a pedidos</button>
@@ -208,7 +237,23 @@
         <div class="campo"><label>Fecha programada de entrega (opcional)</label>
           <input type="date" id="p-fecha">
         </div>
-        ${sugeridos.length ? `<div class="texto-suave" style="font-size:13px;margin-bottom:8px">Sugeridos por stock bajo: ${sugeridos.map((s) => JZAC.ui.esc(s.nombre)).join(', ')}</div>` : ''}
+        ${sugerencias.length ? `
+          <div class="card" style="background:var(--bg-sug, #fff7e0);border:1px solid #f0c36d;margin-bottom:14px">
+            <b>📦 Pedido sugerido automático</b>
+            <div class="texto-suave" style="font-size:13px;margin:2px 0 8px">Cuando el stock llega al mínimo o se agotará pronto según las ventas de los últimos 30 días.</div>
+            <div class="tabla-wrap"><table>
+              <tr><th></th><th>Producto</th><th class="center">Stock</th><th class="center">Mínimo</th><th class="center">Ventas/sem</th><th class="center">Sugerido</th></tr>
+              ${sugerencias.map((s, i) => `<tr>
+                <td><input type="checkbox" class="sug-chk" data-i="${i}" checked style="width:18px;height:18px"></td>
+                <td>${JZAC.ui.esc(s.p.nombre)}</td>
+                <td class="center">${JZAC.ui.n(s.stock)}</td>
+                <td class="center">${JZAC.ui.n(s.min)}</td>
+                <td class="center">${JZAC.ui.n(s.promSem)}</td>
+                <td class="center"><b>${JZAC.ui.n(s.sug)}</b></td>
+              </tr>`).join('')}
+            </table></div>
+            <button class="btn btn-primario mt8" id="cargar-sug">Añadir seleccionadas al pedido</button>
+          </div>` : ''}
         <div id="lineas"></div>
         <div class="mt16" style="display:flex;gap:8px">
           <button class="btn" id="agregar-linea">+ Agregar producto</button>
@@ -247,6 +292,19 @@
     }
 
     document.getElementById('volver-ped').addEventListener('click', () => JZAC.ir('proveedores/pedidos'));
+    const btnCargar = document.getElementById('cargar-sug');
+    if (btnCargar) {
+      btnCargar.addEventListener('click', () => {
+        const marcadas = [...document.querySelectorAll('.sug-chk:checked')].map((c) => Number(c.dataset.i));
+        if (marcadas.length === 0) { JZAC.ui.toast('Marca al menos una sugerencia.', 'mal'); return; }
+        lineas.push(...marcadas.map((i) => {
+          const s = sugerencias[i];
+          return { producto: s.p.nombre, cantidad: s.sug, precio: Math.round(Number(s.p.precioCompra || 0) * 100) / 100 };
+        }));
+        pinta();
+        JZAC.ui.toast(`${marcadas.length} producto(s) añadidos al pedido.`, 'bien');
+      });
+    }
     document.getElementById('agregar-linea').addEventListener('click', () => {
       lineas.push({ producto: '', cantidad: 1, precio: 0 });
       pinta();

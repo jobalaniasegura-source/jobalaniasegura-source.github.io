@@ -26,6 +26,8 @@ async function registrar(nombre, nombreNegocio, correo, pass) {
     passwordHash: await hashPassword(correo, pass),
     serieBoleta: 'B001',
     correlativoBoleta: 1000,
+    serieNota: 'NC001',
+    correlativoNota: 1000,
     creado: Date.now()
   };
   const id = await JZAC.db.guardar('usuarios', usuario);

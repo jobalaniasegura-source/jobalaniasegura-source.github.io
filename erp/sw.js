@@ -1,4 +1,4 @@
-const CACHE = 'jzac-erp-v1.4.2';
+const CACHE = 'jzac-erp-v1.5.0';
 const BASE = './';
 const ASSETS = [
   './',
@@ -21,14 +21,19 @@ const ASSETS = [
   './js/modules/gastos.js',
   './js/modules/reportes.js',
   './js/modules/config.js',
+  './js/modules/cajon.js',
   './icons/icono.svg',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {
+  // Cachea cada recurso por separado: si uno falla, el resto sigue en cache
+  // y el fetch handler lo cubrirá con cache-runtime en el primer uso.
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((c) =>
+      Promise.all(ASSETS.map((a) => c.add(a).catch(() => {})))
+    ).then(() => self.skipWaiting())
   );
 });
 

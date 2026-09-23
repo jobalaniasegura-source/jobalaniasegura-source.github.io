@@ -1,8 +1,8 @@
 // ============================================================
-// JZAC ERP - Capa de datos (IndexedDB) · esquema 14 tablas
+// JZAC ERP - Capa de datos (IndexedDB) · esquema 16 tablas
 // ============================================================
 const DB_NAME = 'jzac_erp_web';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const DB = {
   db: null,
@@ -26,6 +26,8 @@ function open() {
       if (!db.objectStoreNames.contains('pagos_fiado')) db.createObjectStore('pagos_fiado', { keyPath: 'id', autoIncrement: true });
       if (!db.objectStoreNames.contains('mermas')) db.createObjectStore('mermas', { keyPath: 'id', autoIncrement: true });
       if (!db.objectStoreNames.contains('gastos')) db.createObjectStore('gastos', { keyPath: 'id', autoIncrement: true });
+      if (!db.objectStoreNames.contains('notas_credito')) db.createObjectStore('notas_credito', { keyPath: 'id', autoIncrement: true });
+      if (!db.objectStoreNames.contains('detalle_nota')) db.createObjectStore('detalle_nota', { keyPath: 'id', autoIncrement: true });
     };
     req.onsuccess = () => { DB.db = req.result; resolve(req.result); };
     req.onerror = () => reject(req.error);
@@ -72,7 +74,8 @@ const db = {
     await DB.ready;
     const t = DB.db.transaction(
       ['ventas', 'detalle_venta', 'productos', 'fiados', 'pagos_fiado',
-       'pedidos_proveedor', 'detalle_pedido', 'clientes', 'mermas', 'gastos'],
+       'pedidos_proveedor', 'detalle_pedido', 'clientes', 'mermas', 'gastos',
+       'notas_credito', 'detalle_nota'],
       'readwrite'
     );
     const stores = {};

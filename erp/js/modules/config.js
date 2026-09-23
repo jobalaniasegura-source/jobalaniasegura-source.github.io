@@ -2,7 +2,7 @@
 // JZAC ERP - Configuracion: negocio, licencia y respaldo
 // ============================================================
 (function () {
-  const TABLAS = ['usuarios', 'clientes', 'productos', 'proveedores', 'pedidos_proveedor', 'detalle_pedido', 'ventas', 'detalle_venta', 'fiados', 'pagos_fiado', 'mermas', 'gastos'];
+  const TABLAS = ['usuarios', 'clientes', 'productos', 'proveedores', 'pedidos_proveedor', 'detalle_pedido', 'ventas', 'detalle_venta', 'fiados', 'pagos_fiado', 'mermas', 'gastos', 'notas_credito', 'detalle_nota'];
 
   async function render(cont) {
     const u = await JZAC.auth.usuarioActual();

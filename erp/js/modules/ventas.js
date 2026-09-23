@@ -159,6 +159,212 @@
     JZAC.ui.imprimirHTML(crearBoletaHTML(u, v, det), cssRecibo(getAnchoBoleta()));
   }
 
+  // ---------- notas de credito / devoluciones ----------
+  function crearNotaHTML(u, n, dn) {
+    const c = (t) => `<div class="cen">${t}</div>`;
+    const filas = dn.map((d) =>
+      `<tr><td>${JZAC.ui.esc(d.producto)} x${JZAC.ui.n(d.cantidad)}${d.esPeso ? ' kg' : ''}</td><td class="r">${JZAC.ui.dinero(d.precio)}</td><td class="r">${JZAC.ui.dinero(Number(d.cantidad) * Number(d.precio))}</td></tr>`
+    ).join('');
+    return `
+      <div class="rec">
+        ${c(`<b>${JZAC.ui.esc(u.nombreNegocio || u.nombre)}</b>`)}
+        ${c(JZAC.ui.esc(u.ruc ? 'RUC: ' + u.ruc : (u.nombre || '')))}
+        ${c(JZAC.ui.fh(n.fecha))}
+        <div class="sep"></div>
+        ${c(`<b>NOTA DE CRÉDITO ${JZAC.ui.esc(n.nota)}</b>`)}
+        ${c(n.esFactura ? ('RUC: ' + JZAC.ui.esc(n.ruc || '—')) : ('Cliente: ' + JZAC.ui.esc(n.cliente || '—')))}
+        ${c('Boleta de referencia: ' + JZAC.ui.esc(n.boletaRef))}
+        ${c('Motivo: ' + JZAC.ui.esc(n.motivo || '—'))}
+        <div class="sep"></div>
+        <table>
+          <tr><th>Producto</th><th class="r">Pcio</th><th class="r">Sub</th></tr>
+          ${filas}
+        </table>
+        <div class="sep"></div>
+        <div class="sum total"><span>TOTAL DEVUELTO</span><span>${JZAC.ui.dinero(n.total)}</span></div>
+        <div class="sep"></div>
+        ${c('Nota de crédito · JZAC ERP')}
+      </div>`;
+  }
+
+  function imprimirNota(u, n, dn) {
+    JZAC.ui.imprimirHTML(crearNotaHTML(u, n, dn), cssRecibo(getAnchoBoleta()));
+  }
+
+  // Recompone el stock y crea la nota NC-XXXXXXXX de la devolucion.
+  async function registrarDevolucion(u, v, det, motivo) {
+    const productos = await JZAC.db.listar('productos');
+    await DB.ready;
+    return new Promise((resolve, reject) => {
+      const t = DB.db.transaction(['usuarios', 'notas_credito', 'detalle_nota', 'productos'], 'readwrite');
+      const us = t.objectStore('usuarios');
+      const ns = t.objectStore('notas_credito');
+      const nds = t.objectStore('detalle_nota');
+      const ps = t.objectStore('productos');
+      let nota = null;
+      const getU = us.get(u.id);
+      getU.onsuccess = () => {
+        const user = getU.result || u;
+        const serie = user.serieNota || 'NC001';
+        const numero = Number(user.correlativoNota || 1000);
+        user.correlativoNota = numero + 1;
+        us.put(user);
+        const total = Math.round(det.reduce((a, d) => a + Number(d.cantidad) * Number(d.precio), 0) * 100) / 100;
+        nota = {
+          serie, numero,
+          nota: serie + '-' + String(numero).padStart(8, '0'),
+          boletaRef: v.boleta, esFactura: !!v.esFactura,
+          cliente: v.cliente || '', ruc: v.ruc || '', razonSocial: v.razonSocial || '',
+          motivo: (motivo || '').trim(), total, fecha: Date.now()
+        };
+        ns.add(nota).onsuccess = (e) => {
+          nota.id = e.target.result;
+          det.forEach((d) => {
+            nds.add({
+              notaId: nota.id, producto: d.producto, cantidad: Number(d.cantidad),
+              precio: Number(d.precio), total: Math.round(Number(d.cantidad) * Number(d.precio) * 100) / 100,
+              esPeso: !!d.esPeso
+            });
+            const p = productos.find((x) => JZAC.negocio.nombreNorm(x.nombre) === JZAC.negocio.nombreNorm(d.producto));
+            if (p) { p.stock = Math.round((Number(p.stock || 0) + Number(d.cantidad)) * 100) / 100; ps.put(p); }
+          });
+        };
+      };
+      getU.onerror = () => reject(getU.error);
+      t.onerror = () => reject(t.error);
+      t.oncomplete = () => resolve(nota);
+    });
+  }
+
+  // Cantidades aun devolvibles por producto dentro de una boleta.
+  async function quedanPorDevolver(v, det) {
+    const notas = (await JZAC.db.listar('notas_credito')).filter((n) => n.boletaRef === v.boleta);
+    const dnAll = await JZAC.db.listar('detalle_nota');
+    const ids = new Set(notas.map((n) => n.id));
+    const devuelto = {};
+    dnAll.filter((d) => ids.has(d.notaId)).forEach((d) => {
+      const k = JZAC.negocio.nombreNorm(d.producto);
+      devuelto[k] = (devuelto[k] || 0) + Number(d.cantidad);
+    });
+    return det.map((d) => ({
+      d,
+      max: Math.max(0, Math.round((Number(d.cantidad) - (devuelto[JZAC.negocio.nombreNorm(d.producto)] || 0)) * 100) / 100)
+    }));
+  }
+
+  async function modalDevolucion(u, v, det) {
+    const quedo = (await quedanPorDevolver(v, det)).filter((q) => q.max > 0);
+    if (quedo.length === 0) { JZAC.ui.toast('Esta boleta ya fue devuelta por completo.', 'mal'); return; }
+    const motivos = ['Cliente no satisfecho', 'Producto dañado', 'Error en la venta', 'Otro motivo'];
+    const m = JZAC.ui.modal(`
+      <div class="modal-hdr"><h3>Devolución de ${JZAC.ui.esc(v.boleta)}</h3><button class="cierre" data-cerrar>×</button></div>
+      <div class="texto-suave" style="margin-bottom:10px">Marca cuánto devuelves. El stock se repondrá y se imprimirá una nota de crédito.</div>
+      <div class="tabla-wrap-devol"><table>
+        <tr><th>Producto</th><th class="center">Devuelves</th><th class="center">Máx</th><th class="monto">Total</th></tr>
+        ${quedo.map((q, i) => `
+          <tr data-q="${i}">
+            <td>${JZAC.ui.esc(q.d.producto)}${q.d.esPeso ? ' <span class="badge badge-azul">kg</span>' : ''}</td>
+            <td class="center"><input type="number" min="0" step="${q.d.esPeso ? '0.001' : '1'}" max="${q.max}" value="0" class="dev-q" data-i="${i}" style="width:80px"></td>
+            <td class="center">${JZAC.ui.n(q.max)}</td>
+            <td class="monto" id="dev-tot-${i}">${JZAC.ui.dinero(0)}</td>
+          </tr>`).join('')}
+      </table></div>
+      <div class="campo" style="margin-top:12px">
+        <label>Motivo</label>
+        <select id="dev-motivo">${motivos.map((mo) => `<option>${mo}</option>`).join('')}</select>
+      </div>
+      <div class="derecha negrita mt16" style="font-size:16px">TOTAL A DEVOLVER: <span id="dev-total">${JZAC.ui.dinero(0)}</span></div>`,
+      `<button class="btn" data-cerrar>Cancelar</button>
+       <button class="btn btn-primario" id="dev-ok">Registrar devolución</button>`);
+
+    const act = () => {
+      let total = 0;
+      quedo.forEach((q, i) => {
+        const inp = m.raiz.querySelector(`.dev-q[data-i="${i}"]`);
+        let val = Math.min(Number(q.max), Math.max(0, Number(inp.value || 0)));
+        inp.value = Math.round(val * 1000) / 1000;
+        document.getElementById(`dev-tot-${i}`).textContent = JZAC.ui.dinero(val * Number(q.d.precio));
+        total += val * Number(q.d.precio);
+      });
+      document.getElementById('dev-total').textContent = JZAC.ui.dinero(total);
+    };
+    m.raiz.querySelectorAll('.dev-q').forEach((inp) => inp.addEventListener('input', act));
+    m.raiz.querySelector('#dev-ok').addEventListener('click', async () => {
+      const motivo = document.getElementById('dev-motivo').value;
+      const devolucion = [];
+      quedo.forEach((q, i) => {
+        const val = Number(m.raiz.querySelector(`.dev-q[data-i="${i}"]`).value || 0);
+        if (val > 0) devolucion.push({ producto: q.d.producto, cantidad: val, precio: Number(q.d.precio), esPeso: !!q.d.esPeso });
+      });
+      if (devolucion.length === 0) { JZAC.ui.toast('Indica cuánto quieres devolver.', 'mal'); return; }
+      if (!await JZAC.ui.confirmar(`¿Registrar la devolución por <b>${JZAC.ui.dinero(devolucion.reduce((a, d) => a + d.cantidad * d.precio, 0))}</b>? Se repondrá el stock.`, 'Confirmar devolución')) return;
+      try {
+        const n = await registrarDevolucion(u, v, devolucion, motivo);
+        JZAC.ui.toast(`Nota ${n.nota} registrada y stock repuesto.`, 'bien');
+        m.cerrar();
+        const m2 = JZAC.ui.modal(
+          `<div class="modal-hdr"><h3>Devolución registrada</h3><button class="cierre" data-cerrar>×</button></div>
+           <p style="margin:0">Nota de crédito <b>${JZAC.ui.esc(n.nota)}</b><br>Total devuelto: <b style="font-size:18px">${JZAC.ui.dinero(n.total)}</b><br>El stock se repuso automáticamente.</p>`,
+          `<button class="btn btn-primario" id="dev-cont">Continuar</button>
+           <button class="btn btn-dorado" id="dev-imp">Imprimir nota</button>`);
+        m2.raiz.querySelector('#dev-imp').addEventListener('click', () => imprimirNota(u, n, devolucion));
+        m2.raiz.querySelector('#dev-cont').addEventListener('click', m2.cerrar);
+      } catch (e) { JZAC.ui.toast('Error al registrar la devolución.', 'mal'); console.error(e); }
+    });
+    m.raiz.querySelector('[data-cerrar]').addEventListener('click', m.cerrar);
+  }
+
+  // ---------- vista: notas de credito ----------
+  async function vistaNotas(cont, u) {
+    const notas = (await JZAC.db.listar('notas_credito')).sort((a, b) => b.fecha - a.fecha);
+    const dnAll = await JZAC.db.listar('detalle_nota');
+    const dnBy = {};
+    dnAll.forEach((d) => { (dnBy[d.notaId] = dnBy[d.notaId] || []).push(d); });
+
+    cont.innerHTML = `
+      <button class="btn btn-sm" id="volver-vtas" style="margin-bottom:14px">← Volver a ventas</button>
+      <div class="panel-hdr">
+        <div><div class="seccion-titulo" style="margin:0">Notas de crédito</div>
+        <div class="texto-suave" style="font-size:13px">${notas.length} nota(s) · Devoluciones sobre boletas ya emitidas</div></div>
+      </div>
+      ${notas.length === 0
+        ? JZAC.ui.vacio('Sin notas de crédito', 'Cuando devuelvas productos de una venta se genera una nota aquí.')
+        : `<div class="tabla-wrap"><table>
+            <tr><th>Nota</th><th>Boleta</th><th>Fecha</th><th>Motivo</th><th class="monto">Total</th><th></th></tr>
+            ${notas.map((n) => `
+              <tr>
+                <td class="negrita">${JZAC.ui.esc(n.nota)}</td>
+                <td>${JZAC.ui.esc(n.boletaRef)}</td>
+                <td>${JZAC.ui.fh(n.fecha)}</td>
+                <td>${JZAC.ui.esc(n.motivo || '—')}</td>
+                <td class="monto">${JZAC.ui.dinero(n.total)}</td>
+                <td><div class="acciones">
+                  <button class="btn btn-sm" data-ver="${n.id}">Ver</button>
+                  <button class="btn btn-sm btn-dorado" data-imp="${n.id}">Imprimir</button>
+                </div></td>
+              </tr>`).join('')}
+          </table></div>`}`;
+
+    document.getElementById('volver-vtas').addEventListener('click', () => JZAC.ir('ventas'));
+    cont.querySelectorAll('[data-ver]').forEach((b) => b.addEventListener('click', () => {
+      const n = notas.find((x) => x.id === Number(b.dataset.ver));
+      JZAC.ui.modal(`
+        <div class="modal-hdr"><h3>Nota ${JZAC.ui.esc(n.nota)}</h3><button class="cierre" data-cerrar>×</button></div>
+        <div class="texto-suave" style="margin-bottom:10px">${JZAC.ui.fh(n.fecha)} · Boleta ${JZAC.ui.esc(n.boletaRef)} · <b>${JZAC.ui.esc(n.motivo || '—')}</b></div>
+        <div class="tabla-wrap"><table>
+          <tr><th>Producto</th><th class="center">Cant.</th><th class="monto">Precio</th><th class="monto">Total</th></tr>
+          ${(dnBy[n.id] || []).map((d) => `<tr><td>${JZAC.ui.esc(d.producto)}</td><td class="center">${JZAC.ui.n(d.cantidad)}${d.esPeso ? ' kg' : ''}</td><td class="monto">${JZAC.ui.dinero(d.precio)}</td><td class="monto">${JZAC.ui.dinero(d.total)}</td></tr>`).join('')}
+        </table></div>
+        <div class="derecha negrita mt16" style="font-size:16px">TOTAL DEVUELTO: ${JZAC.ui.dinero(n.total)}</div>`,
+        `<button class="btn" data-cerrar>Cerrar</button>
+         <button class="btn btn-dorado" id="ver-imp">Imprimir nota</button>`);
+    }));
+    cont.querySelectorAll('[data-imp]').forEach((b) => b.addEventListener('click', () => {
+      const n = notas.find((x) => x.id === Number(b.dataset.imp));
+      imprimirNota(u, n, dnBy[n.id] || []);
+    }));
+  }
+
   // ---------- vista: listado ----------
   async function vistaLista(cont, u) {
     const ventasAll = await JZAC.db.listar('ventas');
@@ -175,6 +381,7 @@
           <div class="seccion-titulo" style="margin:0">Historial de ventas</div>
           <div class="texto-suave" style="font-size:13px" id="lbl-resumen"></div>
         </div>
+        <button class="btn btn-dorado" id="notas-btn" title="Devoluciones y notas de crédito">Notas de crédito</button>
         <button class="btn btn-primario" id="nueva-venta">+ Nueva venta</button>
       </div>
       <div class="card mt16">
@@ -191,6 +398,7 @@
       <div id="tabla-ventas"></div>`;
 
     document.getElementById('nueva-venta').addEventListener('click', () => JZAC.ir('ventas/nueva'));
+    document.getElementById('notas-btn').addEventListener('click', () => JZAC.ir('ventas/notas'));
 
     function pintaTabla() {
       const q = document.getElementById('filtro-ventas').value.trim().toLowerCase();
@@ -285,10 +493,12 @@
         <div class="derecha negrita" style="font-size:16px">TOTAL: ${JZAC.ui.dinero(v.total)}</div>
       </div>`,
       `<button class="btn" data-cerrar>Cerrar</button>
+       <button class="btn btn-whatsapp" id="wha-boleta">Enviar por WhatsApp</button>
        <button class="btn btn-dorado" id="imprimir-boleta">Imprimir boleta</button>
-       <button class="btn btn-whatsapp" id="wha-boleta">Enviar por WhatsApp</button>`,
+       <button class="btn btn-primario" id="devolver">Devolución / nota de crédito</button>`,
       true);
     m.raiz.querySelector('#imprimir-boleta').addEventListener('click', () => imprimirBoleta(u, v, det));
+    m.raiz.querySelector('#devolver').addEventListener('click', () => modalDevolucion(u, v, det));
     m.raiz.querySelector('#wha-boleta').addEventListener('click', () => {
       const lineas = det.map((d) => `${d.cantidad} × ${d.producto}: ${JZAC.ui.dinero(d.total)}`).join('\n');
       JZAC.negocio.wha(`BOLETA ${v.boleta}\nFecha: ${JZAC.ui.fh(v.fecha)}\nCliente: ${v.cliente || '—'}\n\n${lineas}\n\nTOTAL: ${JZAC.ui.dinero(v.total)}\nGracias por su compra.`);
@@ -658,6 +868,8 @@
     const seg = JZAC.rutaSeg();
     if (seg[1] === 'nueva') {
       JZAC.auth.usuarioActual().then((u) => vistaNueva(cont, u)).catch(() => JZAC.ui.toast('Debes iniciar sesión.', 'mal'));
+    } else if (seg[1] === 'notas') {
+      JZAC.auth.usuarioActual().then((u) => vistaNotas(cont, u));
     } else {
       JZAC.auth.usuarioActual().then((u) => vistaLista(cont, u));
     }
