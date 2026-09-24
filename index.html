@@ -3,8 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jimy Alania | Desarrollador de Software</title>
-  <meta name="description" content="Portafolio de Jimy Alania. Convierto tu idea en una aplicación real: apps a medida, sistemas de gestión, automatización y soporte directo.">
+  <title>Jimy Alania | Aplicaciones a medida y sistemas de gestión</title>
+  <meta name="description" content="Portafolio de Jimy Alania. Convierto tu idea en una aplicación real: sistemas de gestión, apps a medida, automatización y soporte directo. Conoce JZAC ERP, un sistema en producción.">
+  <meta name="theme-color" content="#0B1120">
+  <link rel="icon" type="image/png" href="icono_jzac_erp.png">
+  <!-- Open Graph -->
+  <meta property="og:title" content="Jimy Alania | Aplicaciones a medida y sistemas de gestión">
+  <meta property="og:description" content="Convierto tu idea en una aplicación real. Sistemas de gestión, apps a medida, automatización y soporte directo.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jzac-alania.github.io/">
+  <meta property="og:image" content="https://jzac-alania.github.io/logo_jzac.png">
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,153 +21,302 @@
 </head>
 <body>
 
-  <!-- ===== ENCABEZADO ===== -->
-  <header class="hero">
-    <div class="hero-bg" aria-hidden="true"></div>
-    <nav class="navbar container">
-      <a href="#" class="logo" aria-label="Inicio">
+  <!-- ===== PRELOADER ===== -->
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <div class="preloader-inner">
+      <span class="logo-mark">JA</span>
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Jimy Alania</p>
+    </div>
+  </div>
+  <div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
+
+  <!-- ===== NAVBAR ===== -->
+  <header class="navbar" id="top">
+    <div class="container nav-inner">
+      <a href="#top" class="navbar-logo">
         <span class="logo-mark">JA</span>
         <span class="logo-name">Jimy Alania</span>
       </a>
-      <ul class="nav-links">
-        <li><a href="#servicios">Servicios</a></li>
-        <li><a href="#proyecto">Proyecto</a></li>
-        <li><a href="#proceso">Proceso</a></li>
-        <li><a href="#contacto" class="btn btn-outline">Contacto</a></li>
-      </ul>
-    </nav>
-
-    <div class="hero-content container">
-      <div class="hero-avatar" aria-hidden="true">JA</div>
-      <p class="hero-eyebrow">Desarrollador de Software</p>
-      <h1 class="hero-title">Convierto tu idea en una <span class="gold">aplicación real</span></h1>
-      <p class="hero-sub">Diseño y desarrollo soluciones digitales a medida que dan vida a tus proyectos, de la idea al lanzamiento.</p>
-      <div class="hero-actions">
-        <a href="#contacto" class="btn btn-primary">Cotización sin compromiso</a>
-        <a href="https://wa.me/51929068219?text=Hola%20Jimy%2C%20vi%20tu%20portafolio%20y%20quisiera%20una%20cotizaci%C3%B3n" class="btn btn-whatsapp" target="_blank" rel="noopener">
-          <span aria-hidden="true">&#128172;</span>
-          Escríbeme por WhatsApp
-        </a>
-        <a href="#proyecto" class="btn btn-ghost">Ver mi trabajo</a>
-      </div>
+      <nav class="nav-links" id="nav-links">
+        <a href="#servicios">Servicios</a>
+        <a href="#sistema">El sistema</a>
+        <a href="#proceso">Proceso</a>
+        <a href="#contacto" class="btn btn-small btn-gold">Cotizar</a>
+      </nav>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </header>
 
   <main>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="pill hero-in" style="--d:0">
+            <span class="pill-dot"></span>
+            Desarrollador de Software · Oxapampa, Perú
+          </p>
+          <h1 class="hero-title hero-in" style="--d:1">Convierto tu idea en una <span class="grad-text">aplicación real</span></h1>
+          <p class="hero-sub hero-in" style="--d:2">
+            Diseño y desarrollo sistemas a medida que organizan tu negocio y lo hacen crecer:
+            inventario, ventas y operaciones desde el celular, sin internet y sin complicarte.
+          </p>
+          <div class="hero-actions hero-in" style="--d:3">
+            <a class="btn btn-green btn-lg" href="https://wa.me/51929068219?text=Hola%20Jimy%2C%20vi%20tu%20portafolio%20y%20me%20interesa%20una%20cotizaci%C3%B3n" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Cotización sin compromiso
+            </a>
+            <a class="btn btn-ghost btn-lg" href="erp/">
+              Probar el sistema en vivo
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+          <p class="hero-note hero-in" style="--d:4">Respuesta rápida · Precio claro por adelantado · Soporte en tu idioma</p>
+        </div>
+
+        <div class="hero-visual">
+          <div class="phone hero-in" style="--d:5">
+            <div class="phone-notch" aria-hidden="true"></div>
+            <img src="banner_estado_whatsapp.png" alt="Vista del sistema JZAC ERP desde el celular" loading="eager">
+          </div>
+          <div class="float-card float-a">
+            <span class="float-check">✓</span>
+            Funciona sin internet
+          </div>
+          <div class="float-card float-b">
+            <span class="float-check">✓</span>
+            Prueba gratis 7 días
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TRUST STRIP ===== -->
+    <section class="strip" aria-label="Beneficios">
+      <div class="container strip-inner">
+        <span class="strip-item"><b>ERP en producción</b> para cliente real</span>
+        <span class="strip-sep" aria-hidden="true"></span>
+        <span class="strip-item"><b>100% en tu idioma</b> y a tu medida</span>
+        <span class="strip-sep" aria-hidden="true"></span>
+        <span class="strip-item"><b>PWA</b> · funciona offline</span>
+        <span class="strip-sep" aria-hidden="true"></span>
+        <span class="strip-item"><b>Avances constantes</b> durante el proyecto</span>
+      </div>
+    </section>
+
     <!-- ===== SERVICIOS ===== -->
-    <section id="servicios" class="section">
+    <section class="section" id="servicios">
       <div class="container">
         <p class="section-eyebrow">Servicios</p>
         <h2 class="section-title">¿En qué puedo ayudarte?</h2>
         <div class="grid services-grid">
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">&#9670;</div>
+          <article class="card reveal">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
             <h3>Apps a medida</h3>
-            <p>Aplicaciones móviles y web diseñadas exactamente para las necesidades de tu negocio o idea.</p>
+            <p>Aplicaciones móviles y web diseñadas exactamente para el flujo de tu negocio o tu idea, no al revés.</p>
           </article>
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">&#9745;</div>
+          <article class="card reveal">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+            </div>
             <h3>Sistemas de gestión</h3>
-            <p>Inventarios, ventas, facturación y control: tu operación organizada en un solo lugar.</p>
+            <p>Inventarios, ventas, facturación y control en un solo lugar: tu operación organizada y al día.</p>
           </article>
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">&#8634;</div>
+          <article class="card reveal">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
             <h3>Automatización</h3>
-            <p>Elimina tareas repetitivas con procesos automatizados que ahorran tiempo y errores.</p>
+            <p>Elimina tareas repetitivas: procesos automatizados que te ahorran tiempo, errores y trabajo manual.</p>
           </article>
-          <article class="card">
-            <div class="card-icon" aria-hidden="true">&#9993;</div>
+          <article class="card reveal">
+            <div class="card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </div>
             <h3>Soporte directo</h3>
-            <p>Acompañamiento cercano y en tu idioma, antes, durante y después del lanzamiento.</p>
+            <p>Acompañamiento cercano y en tu idioma, antes, durante y después de lanzar. Tu sistema nunca te queda solo.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- ===== PROYECTO DESTACADO ===== -->
-    <section id="proyecto" class="section section-alt">
+    <!-- ===== PROYECTO / SISTEMA ===== -->
+    <section class="section section-alt" id="sistema">
       <div class="container">
-        <p class="section-eyebrow">Caso real</p>
-        <h2 class="section-title">Proyecto destacado</h2>
-        <article class="featured">
-          <div class="featured-badge">ERP en producción</div>
-          <h3 class="featured-title">JZAC ERP</h3>
-          <p class="featured-desc">Sistema de gestión empresarial completo construido para un cliente real. Controla inventario, ventas y operaciones desde el celular.</p>
-          <ul class="tech-list">
-            <li>Kotlin</li>
-            <li>Android</li>
-            <li>SQLite</li>
-          </ul>
-          <a href="#contacto" class="btn btn-primary">Quiero algo similar</a>
+        <p class="section-eyebrow">Caso real · en producción</p>
+        <h2 class="section-title">Así se ve mi trabajo</h2>
+
+        <article class="featured reveal">
+          <div class="featured-copy">
+            <span class="featured-badge">ERP en producción</span>
+            <h3 class="featured-title">JZAC ERP</h3>
+            <p class="featured-desc">
+              Sistema de gestión que corre <b>en el navegador de tu celular</b>, sin instalar nada y
+              funciona hasta sin internet. Construido para un cliente real que atiende todos los días.
+            </p>
+            <ul class="feature-check">
+              <li>Ventas rápidas: registra con la tecla Enter y una caja siempre lista</li>
+              <li>Inventario con escaneo de código y alertas de stock bajo</li>
+              <li>Gastos, caja y pedidos a proveedor por WhatsApp</li>
+              <li>Reportes claros del día, mes y ganancia</li>
+            </ul>
+            <div class="sell-points">
+              <div class="sell-point">
+                <span class="sell-ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </span>
+                <b>Venta en 1 toque</b>
+                <small>con la tecla Enter</small>
+              </div>
+              <div class="sell-point">
+                <span class="sell-ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </span>
+                <b>Funciona sin internet</b>
+                <small>en cualquier lugar</small>
+              </div>
+              <div class="sell-point">
+                <span class="sell-ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                </span>
+                <b>No se instala nada</b>
+                <small>se abre en tu celular</small>
+              </div>
+              <div class="sell-point sell-point-gold">
+                <span class="sell-ico" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </span>
+                <b>Prueba gratis 7 días</b>
+                <small>antes de decidir</small>
+              </div>
+            </div>
+            <ul class="tech-list" aria-label="Tecnología">
+              <li>JavaScript</li>
+              <li>PWA · Offline</li>
+              <li>Service Worker</li>
+              <li>Escaneo QR</li>
+            </ul>
+            <div class="featured-actions">
+              <a class="btn btn-green btn-lg" href="erp/" target="_blank" rel="noopener">
+                Probar el sistema en vivo
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+              </a>
+              <a class="btn btn-ghost btn-lg" href="https://wa.me/51929068219?text=Hola%20Jimy%2C%20quiero%20un%20sistema%20como%20el%20JZAC%20ERP%20para%20mi%20negocio" target="_blank" rel="noopener">Quiero algo similar</a>
+            </div>
+            <p class="featured-note">Ábrelo en tu celular y guárdalo en tu pantalla de inicio.</p>
+          </div>
+
+          <div class="featured-visual">
+            <div class="phone phone-small">
+              <div class="phone-notch" aria-hidden="true"></div>
+              <img src="banner_estado_whatsapp.png" alt="Captura del sistema JZAC ERP en un celular" loading="lazy">
+            </div>
+            <p class="visual-caption">El sistema real, listo para usar en tu negocio.</p>
+          </div>
         </article>
       </div>
     </section>
 
-    <!-- ===== CÓMO TRABAJAMOS ===== -->
-    <section id="proceso" class="section">
+    <!-- ===== PROCESO ===== -->
+    <section class="section" id="proceso">
       <div class="container">
         <p class="section-eyebrow">Metodología</p>
         <h2 class="section-title">¿Cómo trabajamos?</h2>
         <ol class="steps">
-          <li class="step">
+          <li class="step reveal">
             <span class="step-num">01</span>
-            <h3>Ideamos</h3>
-            <p>Escuchamos tu idea y definimos juntos el alcance y los objetivos.</p>
+            <h3>Me cuentas tu idea</h3>
+            <p>Escuchamos tu idea y definimos juntos el alcance, la realidad de tu negocio y los objetivos.</p>
           </li>
-          <li class="step">
+          <li class="step reveal">
             <span class="step-num">02</span>
-            <h3>Diseñamos</h3>
-            <p>Transformamos la idea en un plan claro y una experiencia pensada para tu usuario.</p>
+            <h3>Propuesta y precio claro</h3>
+            <p>Recibes una propuesta con presupuesto transparente, tiempos definidos y sin sorpresas.</p>
           </li>
-          <li class="step">
+          <li class="step reveal">
             <span class="step-num">03</span>
-            <h3>Desarrollamos</h3>
-            <p>Construimos la aplicación con avances constantes para que siempre sepas cómo va.</p>
+            <h3>Desarrollo tu sistema</h3>
+            <p>Construimos tu aplicación con avances constantes para que siempre sepas cómo va todo.</p>
           </li>
-          <li class="step">
+          <li class="step reveal">
             <span class="step-num">04</span>
-            <h3>Lanzamos</h3>
-            <p>Implementamos, probamos y acompañamos el lanzamiento con soporte directo.</p>
+            <h3>Entrega y acompañamiento</h3>
+            <p>Implementamos, probamos y te acompañamos después del lanzamiento con soporte directo.</p>
           </li>
         </ol>
+        <div class="guarantees" aria-label="Garantías">
+          <div class="guarantee">
+            <span class="guarantee-icon">✓</span>
+            <p><b>Precio claro</b> por adelantado</p>
+          </div>
+          <div class="guarantee">
+            <span class="guarantee-icon">✓</span>
+            <p><b>Avances cada semana</b> durante el proyecto</p>
+          </div>
+          <div class="guarantee">
+            <span class="guarantee-icon">✓</span>
+            <p><b>Pago en partes</b>, no todo de golpe</p>
+          </div>
+          <div class="guarantee">
+            <span class="guarantee-icon">✓</span>
+            <p><b>Soporte en tu idioma</b>, cercano y directo</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- ===== CONTACTO / CTA ===== -->
-    <section id="contacto" class="section section-cta">
-      <div class="container cta-box">
-        <h2 class="cta-title">¿Tienes una idea en mente?</h2>
-        <p class="cta-sub">Hablemos. Obtén una cotización sin compromiso y en el menor tiempo posible.</p>
-        <div class="cta-actions">
-          <a href="tel:+51929068219" class="btn btn-cta">
-            <span class="btn-icon" aria-hidden="true">&#128222;</span>
-            Cotización sin compromiso &middot; +51 929 068 219
-          </a>
-          <a href="https://wa.me/51929068219?text=Hola%20Jimy%20%F0%9F%91%8B%20vi%20tu%20portafolio.%20Me%20interesa%20cotizar" class="btn btn-whatsapp" target="_blank" rel="noopener">
-            <span aria-hidden="true">&#128172;</span>
-            WhatsApp &middot; 929 068 219
-          </a>
+    <section class="section section-cta" id="contacto">
+      <div class="container">
+        <div class="cta-box reveal">
+          <h2 class="cta-title">¿Tienes una idea en mente?</h2>
+          <p class="cta-sub">Hablemos por WhatsApp. Obtén una cotización sin compromiso y en el menor tiempo posible.</p>
+          <div class="cta-actions">
+            <a href="tel:+51929068219" class="btn btn-gold btn-lg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Cotización sin compromiso · +51 929 068 219
+            </a>
+            <a href="https://wa.me/51929068219?text=Hola%20Jimy%20%F0%9F%91%8B%20vi%20tu%20portafolio%2C%20me%20gustar%C3%ADa%20cotizar" class="btn btn-green btn-lg" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Escribirme por WhatsApp
+            </a>
+          </div>
+          <p class="cta-loc">Oxapampa · Pasco · Perú</p>
         </div>
-        <p class="cta-loc">Oxapampa &middot; Pasco &middot; Perú</p>
       </div>
     </section>
   </main>
 
+  <!-- ===== FOOTER ===== -->
   <footer class="footer">
     <div class="container footer-inner">
-      <a href="#" class="logo">
+      <a href="#top" class="navbar-logo">
         <span class="logo-mark">JA</span>
         <span class="logo-name">Jimy Alania</span>
       </a>
-      <p>&copy; 2026 Jimy Alania &middot; Desarrollador de Software</p>
+      <nav class="footer-links" aria-label="Enlaces">
+        <a href="#servicios">Servicios</a>
+        <a href="erp/" target="_blank" rel="noopener">JZAC ERP</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <p>&copy; <span id="year">2026</span> Jimy Alania · Desarrollador de Software</p>
     </div>
   </footer>
 
-  <a class="whatsapp-float" href="https://wa.me/51929068219?text=Hola%20Jimy%20%F0%9F%91%8B%20%C2%BFQu%C3%A9%20puedo%20hacer%20por%20ti%3F" target="_blank" rel="noopener" aria-label="Escríbeme por WhatsApp">
+  <!-- ===== WHATSAPP FLOTANTE ===== -->
+  <a class="whatsapp-float" href="https://wa.me/51929068219?text=Hola%20Jimy%20%F0%9F%91%8B" target="_blank" rel="noopener" aria-label="Escríbeme por WhatsApp">
     <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M16 2.7c-7.4 0-13.4 6-13.4 13.4 0 2.4.6 4.7 1.8 6.8L2 29.3l6.6-2.2a13.3 13.3 0 0 0 7.4 2.2h.1c7.4 0 13.4-6 13.4-13.4S23.4 2.7 16 2.7zm0 24.4h-.1c-2.1 0-4.2-.6-6-1.6l-.4-.3-3.9 1.3 1.3-3.8-.3-.5a11 11 0 0 1-1.7-5.9c0-6.1 5-11.1 11.2-11.1 3 0 5.8 1.2 7.9 3.2a11.1 11.1 0 0 1 3.3 7.9c0 6.1-5 11.1-11.3 11.1zm6.2-8.3c-.3-.2-2-1-2.3-1.1-.3-.1-.5-.2-.7.2-.2.3-.8 1.1-1 1.3-.2.2-.4.2-.7.1-.3-.2-1.4-.5-2.6-1.6-1-1-1.6-2.1-1.8-2.5-.2-.3 0-.5.1-.6.2-.2.4-.4.5-.7.2-.3.2-.5.4-.7.1-.3 0-.5 0-.7-.1-.2-.7-1.7-1-2.3-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.2.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.9-.8 2.1-1.5.3-.7.3-1.4.2-1.5-.1-.1-.3-.2-.6-.4z"/>
     </svg>
   </a>
 
+  <script src="script.js"></script>
 </body>
 </html>
