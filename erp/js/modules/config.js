@@ -33,6 +33,18 @@
 
         <div>
           <div class="card">
+            <div class="seccion-titulo" style="margin-top:0">Apariencia</div>
+            <div class="campo">
+              <label>Tema de la pantalla</label>
+              <select id="cf-tema">
+                <option value="claro">Claro</option>
+                <option value="oscuro">Oscuro</option>
+              </select>
+            </div>
+            <div class="texto-suave" style="font-size:13px">También puedes alternarlo desde el botón del encabezado.</div>
+          </div>
+
+          <div class="card mt16">
             <div class="seccion-titulo" style="margin-top:0">Respaldo de datos</div>
             <div class="texto-suave" style="font-size:13px;margin-bottom:12px">Tu información vive solo en este dispositivo. Descarga respaldos periódicos.</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -83,7 +95,7 @@
           <div class="card mt16">
             <div class="seccion-titulo" style="margin-top:0">Acerca de</div>
             <div style="font-size:14px;line-height:1.7;color:var(--texto-suave)">
-              <b style="color:var(--texto)">JZAC ERP</b> · versión web 1.0<br>
+              <b style="color:var(--texto)">JZAC ERP</b> · versión web 1.5.3<br>
               Ventas, inventario, fiados y reportes para tu negocio.<br>
               JZAC · Software que trabaja por tu negocio.
             </div>
@@ -153,6 +165,14 @@
       const usr = await JZAC.auth.usuarioActual();
       if (!JZAC.impresion) { JZAC.ui.toast('Carga el sistema primero.', 'mal'); return; }
       JZAC.ui.imprimirHTML(JZAC.impresion.test(usr) + '<div style="margin-top:8px"></div>', JZAC.impresion.css(JZAC.impresion.ancho()));
+    });
+
+    // ---------- apariencia (tema) ----------
+    document.getElementById('cf-tema').value = window.JZAC.tema.actual();
+    document.getElementById('cf-tema').addEventListener('change', (e) => {
+      localStorage.setItem('jzac_tema', e.target.value === 'oscuro' ? 'oscuro' : 'claro');
+      window.JZAC.tema.aplicar();
+      JZAC.ui.toast('Tema actualizado.', 'bien');
     });
 
     // ---------- flujo rápido de la caja ----------

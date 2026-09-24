@@ -194,6 +194,7 @@
 
   async function boot() {
     await DB.ready;
+    if (window.JZAC && JZAC.tema) { JZAC.tema.aplicar(); }
     if ('serviceWorker' in navigator) {
       try { navigator.serviceWorker.register('./sw.js'); } catch (e) { /* sin SW */ }
     }

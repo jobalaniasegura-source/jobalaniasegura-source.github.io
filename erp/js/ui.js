@@ -128,6 +128,7 @@ async function mostrarApp(usuario) {
         <div class="topbar">
           <button class="btn btn-sm btn-menu" id="btn-menu">☰</button>
           <h2 id="titulo-mod">Inicio</h2>
+          <button class="btn btn-sm btn-suave" id="btn-tema" title="Cambiar entre tema claro y oscuro">Oscuro</button>
           <div class="topbar-user"><b>${ui.esc(usuario.nombre)}</b></div>
         </div>
         <div id="trial-banner" style="display:none"></div>
@@ -161,6 +162,8 @@ async function mostrarApp(usuario) {
 
   cargarModulo();
   window.addEventListener('hashchange', cargarModulo);
+  window.JZAC.tema.sincronizar();
+  window.JZAC.tema.aplicar();
 }
 
 function cargarModulo() {
@@ -184,6 +187,32 @@ window.JZAC.ir = ir;
 window.JZAC.rutaSeg = () => (location.hash || '#/dashboard').replace(/^#\/?/, '').split('/');
 window.JZAC.mostrarApp = mostrarApp;
 window.JZAC.cargarModulo = cargarModulo;
+
+// ---------- tema (claro / oscuro) ----------
+const tema = {
+  actual() { return localStorage.getItem('jzac_tema') === 'oscuro' ? 'oscuro' : 'claro'; },
+  aplicar(v) {
+    const val = v || tema.actual();
+    document.documentElement.dataset.tema = val === 'oscuro' ? 'oscuro' : '';
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', val === 'oscuro' ? '#0B1120' : '#0E8450');
+    const b = document.getElementById('btn-tema');
+    if (b) b.textContent = val === 'oscuro' ? 'Claro' : 'Oscuro';
+  },
+  alternar() {
+    const nuevo = tema.actual() === 'oscuro' ? 'claro' : 'oscuro';
+    localStorage.setItem('jzac_tema', nuevo);
+    tema.aplicar(nuevo);
+  },
+  sincronizar() {
+    const b = document.getElementById('btn-tema');
+    if (b) {
+      b.textContent = tema.actual() === 'oscuro' ? 'Claro' : 'Oscuro';
+      b.addEventListener('click', () => tema.alternar());
+    }
+  }
+};
+window.JZAC.tema = tema;
 
 document.addEventListener('focusin', (e) => {
   const t = e.target;
