@@ -26,6 +26,15 @@
       .filter((p) => Number(p.stock || 0) <= Number(p.stockMin || 0))
       .sort((a, b) => a.stock - b.stock)
       .slice(0, 6);
+    const diasDia = 86400000;
+    const porVencer = productos
+      .filter((p) => p.fechaVencimiento && Number(p.stock || 0) > 0 &&
+        Math.ceil((p.fechaVencimiento - Date.now()) / diasDia) <= 30)
+      .map((p) => ({ p, dias: Math.ceil((p.fechaVencimiento - Date.now()) / diasDia) }))
+      .sort((a, b) => a.dias - b.dias)
+      .slice(0, 6);
+    const textoDias = (d) => d < 0 ? 'VENCIDO' : (d === 0 ? 'Hoy' : (d === 1 ? '1 día' : `${d} días`));
+    const claseDias = (d) => d < 0 ? 'badge-rojo' : (d <= 3 ? 'badge-rojo' : (d <= 7 ? 'badge-dorado' : 'badge-gris'));
 
     const saludo = new Date().getHours() < 12 ? 'Buenos días' : new Date().getHours() < 19 ? 'Buenas tardes' : 'Buenas noches';
     const fec = new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -88,7 +97,7 @@
         </div>
       </div>
 
-      <div class="grid grid-2 mt16">
+      <div class="grid grid-3 mt16">
         <div class="card">
           <div class="seccion-titulo">Alerta de stock bajo</div>
           ${stockBajo.length === 0
@@ -97,7 +106,20 @@
                 <tr><th>Producto</th><th class="monto">Stock</th><th class="monto">Mínimo</th></tr>
                 ${stockBajo.map((p) => `<tr><td>${JZAC.ui.esc(p.nombre)}</td><td class="monto">${JZAC.ui.n(p.stock)}</td><td class="monto">${JZAC.ui.n(p.stockMin)}</td></tr>`).join('')}
               </table></div>`}
-          <div class="mt16"><button class="btn btn-sm" data-ir="inventario">Ver inventario</button></div>
+          <div class="mt16" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-primario" data-ir="proveedores/pedido/nuevo">Crear pedido de lo que falta</button>
+            <button class="btn btn-sm" data-ir="inventario">Ver inventario</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="seccion-titulo">Próximos a vencer</div>
+          ${porVencer.length === 0
+            ? '<div class="texto-suave">Sin productos por vencer en los próximos 30 días.</div>'
+            : `<div class="tabla-wrap"><table>
+                <tr><th>Producto</th><th>Vence</th></tr>
+                ${porVencer.map(({ p, dias }) => `<tr><td>${JZAC.ui.esc(p.nombre)}${p.stock > 1 ? ` <span class="texto-suave" style="font-size:12px">x${JZAC.ui.n(p.stock)}</span>` : ''}</td><td>${JZAC.ui.fe(p.fechaVencimiento)} <span class="badge ${claseDias(dias)}">${textoDias(dias)}</span></td></tr>`).join('')}
+              </table></div>`}
+          ${porVencer.length ? '<div class="mt16"><button class="btn btn-sm btn-whatsapp" data-enviar-venc>¿Avisar por WhatsApp?</button></div>' : ''}
         </div>
         <div class="card">
           <div class="seccion-titulo">A un clic</div>
@@ -127,6 +149,17 @@
         `📈 Ganancia neta: ${JZAC.ui.dinero(gananciaNeta)}`,
         `💸 Gastos: ${JZAC.ui.dinero(gastosHoy)}`,
         ` Fiados por cobrar: ${JZAC.ui.dinero(fiadosPendientes)}`,
+        `Generado con JZAC ERP · Software que trabaja por tu negocio`
+      ].join('\n');
+      JZAC.negocio.wha(texto);
+    });
+
+    const bv = cont.querySelector('[data-enviar-venc]');
+    if (bv) bv.addEventListener('click', () => {
+      const texto = [
+        '⏰ ALERTA DE VENCIMIENTOS',
+        `Negocio: ${u.nombreNegocio}`,
+        porVencer.map(({ p, dias }) => ` ${p.nombre} (x${JZAC.ui.n(p.stock)}) · ${textoDias(dias)} · ${JZAC.ui.fe(p.fechaVencimiento)}`).join('\n'),
         `Generado con JZAC ERP · Software que trabaja por tu negocio`
       ].join('\n');
       JZAC.negocio.wha(texto);

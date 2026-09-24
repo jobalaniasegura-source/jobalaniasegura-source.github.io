@@ -603,9 +603,54 @@
             <div class="derecha" style="font-size:14px">Subtotal: <b id="tot-sub">${JZAC.ui.dinero(0)}</b></div>
             <div class="derecha negrita" style="font-size:22px;margin-top:4px" id="tot-final">${JZAC.ui.dinero(0)}</div>
           </div>
-          <button class="btn btn-primario btn-bloco" id="guardar-venta">Registrar venta</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-bloco" id="btn-gasto" title="Registrar un gasto sin salir de la caja (luz, pasaje, reposición...)">Gasto</button>
+            <button class="btn btn-primario btn-bloco" style="flex:2" id="guardar-venta">Registrar venta</button>
+          </div>
         </div>
       </div>`;
+
+    function modalGastoRapido() {
+      const cats = ['Compra', 'Servicios', 'Transporte', 'Alquiler', 'Varios'];
+      const m = JZAC.ui.modal(`
+        <div class="modal-hdr"><h3>Gasto rápido</h3><button class="cierre" data-cerrar>×</button></div>
+        <div class="texto-suave" style="font-size:13px;margin-bottom:10px">Registra el gasto sin dejar la caja. Elige el monto y la categoría.</div>
+        <div class="campo"><label>Monto (S/)</label>
+          <div class="monto-rapido" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn btn-sm" data-mg="5">S/ 5</button>
+            <button type="button" class="btn btn-sm" data-mg="10">S/ 10</button>
+            <button type="button" class="btn btn-sm" data-mg="20">S/ 20</button>
+            <button type="button" class="btn btn-sm" data-mg="50">S/ 50</button>
+            <button type="button" class="btn btn-sm" data-mg="100">S/ 100</button>
+          </div>
+          <input type="number" id="mg-monto" step="0.01" min="0" placeholder="o escribe el monto" style="margin-top:8px">
+        </div>
+        <div class="fila">
+          <div class="campo"><label>Categoría</label>
+            <select id="mg-cat">${cats.map((c) => `<option>${c}</option>`).join('')}</select>
+          </div>
+          <div class="campo"><label>Concepto</label><input id="mg-concepto" placeholder="Ej. Luz, pasaje..." value="Gasto rápido"></div>
+        </div>`,
+        `<button class="btn" data-cerrar>Cancelar</button>
+         <button class="btn btn-primario" id="guardar-gasto-r">Guardar gasto</button>`);
+
+      m.raiz.querySelectorAll('[data-mg]').forEach((b) => b.addEventListener('click', () => {
+        document.getElementById('mg-monto').value = b.dataset.mg;
+      }));
+      m.raiz.querySelector('#guardar-gasto-r').addEventListener('click', async () => {
+        const monto = Number(document.getElementById('mg-monto').value || 0);
+        if (monto <= 0) { JZAC.ui.toast('Ingresa el monto del gasto.', 'mal'); return; }
+        const concepto = document.getElementById('mg-concepto').value.trim() || 'Gasto rápido';
+        await JZAC.db.guardar('gastos', {
+          concepto,
+          monto: Math.round(monto * 100) / 100,
+          categoria: document.getElementById('mg-cat').value,
+          fecha: Date.now()
+        });
+        JZAC.ui.toast(`Gasto de ${JZAC.ui.dinero(monto)} registrado.`, 'bien');
+        m.cerrar();
+      });
+    }
 
     function totalVenta() {
       const sub = items.reduce((a, it) => a + it.precio * it.cantidad, 0);
@@ -932,6 +977,7 @@
     }
 
     document.getElementById('guardar-venta').addEventListener('click', registrarAhora);
+    document.getElementById('btn-gasto').addEventListener('click', modalGastoRapido);
   }
 
   function render(cont) {

@@ -112,6 +112,7 @@
                 <td><div class="acciones">
                   <button class="btn btn-sm" data-ver="${p.id}">Ver</button>
                   ${p.estado === 'Pendiente' ? `<button class="btn btn-sm btn-primario" data-recibir="${p.id}">Recibir</button>` : ''}
+                  <button class="btn btn-sm btn-whatsapp" data-wha="${p.id}">WhatsApp</button>
                   <button class="btn btn-sm btn-peligro" data-borrar="${p.id}">Eliminar</button>
                 </div></td>
               </tr>`;
@@ -132,6 +133,10 @@
         vistaPedidos(cont);
       }
     }));
+    cont.querySelectorAll('[data-wha]').forEach((b) => b.addEventListener('click', () => {
+      const p = pedidos.find((x) => x.id === Number(b.dataset.wha));
+      enviarPedidoWha(p, detp.filter((d) => d.pedidoId === p.id));
+    }));
     cont.querySelectorAll('[data-borrar]').forEach((b) => b.addEventListener('click', async () => {
       const p = pedidos.find((x) => x.id === Number(b.dataset.borrar));
       if (await JZAC.ui.confirmar(`¿Eliminar el pedido <b>#${p.id}</b>?`)) {
@@ -146,6 +151,27 @@
   }
 
   function items_count(det, pid) { return det.filter((x) => x.pedidoId === pid).length; }
+
+  async function enviarPedidoWha(p, dets) {
+    const proveedores = await JZAC.db.listar('proveedores');
+    const pv = proveedores.find((x) => JZAC.negocio.nombreNorm(x.nombre) === JZAC.negocio.nombreNorm(p.proveedor));
+    let num = pv && pv.whatsapp ? String(pv.whatsapp).replace(/[^0-9]/g, '') : '';
+    if (/^9\d{8}$/.test(num)) num = '51' + num;
+    if (!num) { JZAC.ui.toast('Este proveedor no tiene WhatsApp guardado. Agrégaselo en Proveedores.', 'mal'); return; }
+    const filas = dets.map((d) => `▸ ${d.producto} x${JZAC.ui.n(d.cantidad)} (${JZAC.ui.dinero(d.precio)}) = ${JZAC.ui.dinero(Number(d.cantidad) * Number(d.precio))}`).join('\n');
+    const tot = dets.reduce((a, d) => a + Number(d.cantidad) * Number(d.precio), 0);
+    const txt = [
+      `📦 *PEDIDO #${String(p.id).padStart(3, '0')}* · ${JZAC.ui.fe(p.fecha)}`,
+      `Para: ${p.proveedor}`,
+      p.fechaProgramada ? `Entrega programada: ${JZAC.ui.fe(p.fechaProgramada)}` : '',
+      '',
+      filas,
+      '',
+      `*TOTAL: ${JZAC.ui.dinero(tot)}*`
+    ].filter((x) => x !== '').join('\n');
+    window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank');
+    JZAC.ui.toast('Pedido listo para enviar en WhatsApp.', 'bien');
+  }
 
   async function recibirPedido(p) {
     const dets = (await JZAC.db.listar('detalle_pedido')).filter((d) => d.pedidoId === p.id);
@@ -185,7 +211,9 @@
         ${dets.map((d) => `<tr><td>${JZAC.ui.esc(d.producto)}</td><td class="center">${JZAC.ui.n(d.cantidad)}</td><td class="monto">${JZAC.ui.dinero(d.precio)}</td><td class="monto">${JZAC.ui.dinero(d.precio * d.cantidad)}</td></tr>`).join('')}
       </table></div>
       <div class="derecha negrita mt16" style="font-size:16px">TOTAL: ${JZAC.ui.dinero(dets.reduce((a, d) => a + d.precio * d.cantidad, 0))}</div>`,
-      `<button class="btn" data-cerrar>Cerrar</button>`);
+      `<button class="btn btn-whatsapp" id="enviar-ped-wha">Enviar por WhatsApp</button>
+       <button class="btn" data-cerrar>Cerrar</button>`);
+    m.raiz.querySelector('#enviar-ped-wha').addEventListener('click', () => enviarPedidoWha(p, dets));
   }
 
   // ---------- nuevo pedido ----------
