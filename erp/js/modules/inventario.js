@@ -3,6 +3,7 @@
 // ============================================================
 (function () {
   let categoriasCache = [];
+  let proveedoresCache = [];
 
   // Comprime una foto elegida con la cámara/galería para guardarla en el equipo.
   function fotoDataURL(file) {
@@ -32,6 +33,7 @@
   async function pintaProductos(cont) {
     const productos = (await JZAC.db.listar('productos')).sort((a, b) => a.nombre.localeCompare(b.nombre));
     categoriasCache = [...new Set(productos.filter((x) => x.categoria).map((x) => x.categoria))];
+    proveedoresCache = (await JZAC.db.listar('proveedores')).sort((a, b) => a.nombre.localeCompare(b.nombre));
     const stockBajo = productos.filter((p) => Number(p.stock || 0) <= Number(p.stockMin || 0));
     const valor = productos.reduce((a, p) => a + Number(p.stock || 0) * Number(p.precioCompra || 0), 0);
 
@@ -141,6 +143,12 @@
       </div>
       <div class="campo"><label>Categoría (opcional)</label><input id="f-categoria" list="dl-categorias" placeholder="Ej.: Gaseosas, Abarrotes, Limpieza..." value="${JZAC.ui.esc(p ? (p.categoria || '') : '')}"></div>
       <datalist id="dl-categorias">${categorias.map((c) => `<option value="${JZAC.ui.esc(c)}">`).join('')}</datalist>
+      <div class="campo"><label>Proveedor (opcional) — con esto aparecerá en los pedidos de ese proveedor</label>
+        <select id="f-proveedor">
+          <option value="">Sin proveedor</option>
+          ${proveedoresCache.map((pv) => `<option${p && JZAC.negocio.nombreClave(p.proveedor || '') === JZAC.negocio.nombreClave(pv.nombre) ? ' selected' : ''}>${JZAC.ui.esc(pv.nombre)}</option>`).join('')}
+        </select>
+      </div>
       <div class="campo">
         <label>Foto del producto (opcional)</label>
         <div style="display:flex;align-items:center;gap:10px">
@@ -199,6 +207,7 @@
       const obj = {
         nombre,
         categoria: document.getElementById('f-categoria').value.trim(),
+        proveedor: document.getElementById('f-proveedor').value,
         foto: fotoGuardada,
         ventaPeso: document.getElementById('f-ventatipo').value === 'peso',
         codigo: document.getElementById('f-codigo').value.trim(),

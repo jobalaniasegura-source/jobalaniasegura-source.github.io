@@ -6,12 +6,17 @@
   // ---------- proveedores ----------
   async function vistaProveedores(cont) {
     const proveedores = (await JZAC.db.listar('proveedores')).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const productos = await JZAC.db.listar('productos');
     const pedidos = await JZAC.db.listar('pedidos_proveedor');
     const porProv = {};
     pedidos.forEach((p) => {
       porProv[p.proveedor] = porProv[p.proveedor] || { total: 0, pendientes: 0 };
       if (p.estado === 'Pendiente') porProv[p.proveedor].pendientes++;
     });
+    const cantProd = (nombre) => {
+      const k = JZAC.negocio.nombreClave(nombre);
+      return productos.filter((x) => x.proveedor && JZAC.negocio.nombreClave(x.proveedor) === k).length;
+    };
 
     cont.innerHTML = `
       <div class="panel-hdr">
@@ -25,11 +30,12 @@
       ${proveedores.length === 0
         ? JZAC.ui.vacio('Sin proveedores', 'Agrega tus proveedores para registrar pedidos.')
         : `<div class="tabla-wrap"><table>
-            <tr><th>Proveedor</th><th>WhatsApp</th><th>Teléfono</th><th class="center">Pedidos pend.</th><th></th></tr>
+            <tr><th>Proveedor</th><th>WhatsApp</th><th>Teléfono</th><th class="center">Productos</th><th class="center">Pedidos pend.</th><th></th></tr>
             ${proveedores.map((pv) => `<tr>
               <td class="negrita">${JZAC.ui.esc(pv.nombre)}</td>
               <td>${pv.whatsapp ? `<a target="_blank" rel="noopener" href="https://wa.me/${String(pv.whatsapp).replace(/[^0-9]/g, '')}">${JZAC.ui.esc(pv.whatsapp)}</a>` : '—'}</td>
               <td>${JZAC.ui.esc(pv.telefono || '—')}</td>
+              <td class="center">${cantProd(pv.nombre) || '—'}</td>
               <td class="center">${(porProv[pv.nombre] || {}).pendientes ? `<span class="badge badge-dorado">${porProv[pv.nombre].pendientes}</span>` : '—'}</td>
               <td><div class="acciones">
                 <button class="btn btn-sm" data-editar="${pv.id}">Editar</button>
@@ -187,9 +193,10 @@
         if (pv) {
           pv.stock = Number(pv.stock || 0) + Number(d.cantidad);
           pv.precioCompra = Number(d.precio);
+          if (!pv.proveedor) pv.proveedor = p.proveedor;
           ps.put(pv);
         } else {
-          ps.put({ nombre: d.producto, precioCompra: Number(d.precio), precioVenta: Number(d.precio), stock: Number(d.cantidad), stockMin: 0, fechaVencimiento: null, creado: Date.now() });
+          ps.put({ nombre: d.producto, precioCompra: Number(d.precio), precioVenta: Number(d.precio), stock: Number(d.cantidad), stockMin: 0, fechaVencimiento: null, proveedor: p.proveedor, creado: Date.now() });
         }
       });
       const gp = t.objectStore('pedidos_proveedor').get(p.id);
@@ -266,6 +273,7 @@
         <div class="campo"><label>Fecha programada de entrega (opcional)</label>
           <input type="date" id="p-fecha">
         </div>
+        <div id="cat-sup" class="card" style="background:var(--bg);border:1px dashed var(--borde);padding:10px 12px;margin-bottom:14px"></div>
         ${sugerencias.length ? `
           <div class="card" style="background:var(--bg-sug, #fff7e0);border:1px solid #f0c36d;margin-bottom:14px">
             <b>📦 Pedido sugerido automático</b>
@@ -292,6 +300,43 @@
       </div>`;
 
     const caja = document.getElementById('lineas');
+    const selSup = document.getElementById('p-sup');
+    let provSel = '';
+
+    function catSup() {
+      if (!provSel) return [];
+      const k = JZAC.negocio.nombreClave(provSel);
+      return productos.filter((p) => p.proveedor && JZAC.negocio.nombreClave(p.proveedor) === k);
+    }
+
+    function pintaCatalogo() {
+      const c = document.getElementById('cat-sup');
+      if (!provSel) {
+        c.innerHTML = '<div class="texto-suave" style="font-size:13px">Elige el proveedor y aquí aparecerán sus productos para tocar y agregarlos.</div>';
+        return;
+      }
+      const cat = catSup();
+      if (!cat.length) {
+        c.innerHTML = `<div class="texto-suave" style="font-size:13px"><b>${JZAC.ui.esc(provSel)}</b> aún no tiene productos asignados. En Inventario → producto → <b>Proveedor</b> se los asignas (o se asignan solos al recibir el pedido). Mientras tanto puedes escribir los productos a mano.</div>`;
+        return;
+      }
+      c.innerHTML = `<div class="negrita" style="font-size:13px;margin-bottom:8px">Productos de ${JZAC.ui.esc(provSel)} · toca para agregar:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${cat.map((p) => `<button type="button" class="btn btn-sm btn-suave" data-cat="${p.id}">${JZAC.ui.esc(p.nombre)} · ${JZAC.ui.dinero(p.precioCompra || 0)}</button>`).join('')}
+        </div>`;
+      c.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => {
+        const p = productos.find((x) => x.id === Number(b.dataset.cat));
+        if (!p) return;
+        const nueva = { producto: p.nombre, cantidad: 1, precio: Math.round(Number(p.precioCompra || 0) * 100) / 100 };
+        if (lineas.length === 1 && !lineas[0].producto.trim()) lineas[0] = nueva;
+        else lineas.push(nueva);
+        pinta();
+        total();
+        JZAC.ui.toast(`${p.nombre} añadido al pedido.`, 'bien');
+      }));
+    }
+
+    selSup.addEventListener('change', () => { provSel = selSup.value; pintaCatalogo(); pinta(); });
 
     function pinta() {
       caja.innerHTML = lineas.map((l, i) => `
@@ -302,7 +347,7 @@
           <div class="campo" style="margin:0"><label>Cantidad</label><input type="number" min="1" step="1" id="li-cant-${i}" value="${l.cantidad}"></div>
           <div class="campo" style="margin:0"><label>Precio (S/)</label><input type="number" min="0" step="0.01" id="li-pre-${i}" value="${l.precio}"></div>
           <div style="align-self:end"><button class="btn btn-sm btn-peligro" data-quit="${i}">×</button></div>
-        </div>`).join('') + `<datalist id="prod-list">${productos.map((pp) => `<option value="${JZAC.ui.esc(pp.nombre)}">`).join('')}</datalist>`;
+        </div>`).join('') + `<datalist id="prod-list">${(catSup().length ? catSup() : productos).map((pp) => `<option value="${JZAC.ui.esc(pp.nombre)}">`).join('')}</datalist>`;
 
       lineas.forEach((l, i) => {
         document.getElementById(`li-cant-${i}`).addEventListener('input', () => { l.cantidad = Math.max(0, Number(document.getElementById(`li-cant-${i}`).value || 0)); total(); });
@@ -361,6 +406,7 @@
       t.onerror = () => JZAC.ui.toast('Error al guardar el pedido.', 'mal');
     });
 
+    pintaCatalogo();
     pinta();
   }
 
