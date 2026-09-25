@@ -565,6 +565,7 @@
             </div>
             <button class="btn" id="escanear-venta" title="Escanear con la cámara del celular"> Escanear cámara</button>
           </div>
+          <div id="grilla-venta" style="margin-bottom:14px"></div>
           <div class="fila">
             <div class="campo">
               <label>Producto</label>
@@ -820,7 +821,7 @@
       const rest = Math.max(0, Number(p.stock || 0));
       const alerta = rest <= Number(p.stockMin || 0);
       previewProd.innerHTML =
-        `<b>${JZAC.ui.esc(p.nombre)}</b>${p.ventaPeso ? ' <span class="badge badge-azul">por kg</span>' : ''} · ${JZAC.ui.dinero(p.precioVenta)} · stock: <b class="${alerta ? 'txt-rojo' : ''}">${JZAC.ui.n(rest)}</b> ${alerta ? '<span class="badge badge-rojo">¡bajo!</span>' : ''}`;
+        `${p.foto ? `<img src="${p.foto}" alt="" class="gp-foto-mini">` : ''}<b>${JZAC.ui.esc(p.nombre)}</b>${p.ventaPeso ? ' <span class="badge badge-azul">por kg</span>' : ''} · ${JZAC.ui.dinero(p.precioVenta)} · stock: <b class="${alerta ? 'txt-rojo' : ''}">${JZAC.ui.n(rest)}</b> ${alerta ? '<span class="badge badge-rojo">¡bajo!</span>' : ''}`;
     }
 
     // "3=código" · "2x código" · "10 *código" → agrega esa cantidad.
@@ -924,6 +925,53 @@
       }));
     }
 
+    // ---------- grilla táctil de productos (categorías + foto) ----------
+    const conGrilla = document.getElementById('grilla-venta');
+
+    function botonesGrilla(cat) {
+      return productos.map((p) => {
+        const c = (p.categoria || '').trim() || 'Otros';
+        if (cat !== '__todos' && c !== cat) return '';
+        const ini = JZAC.ui.esc((p.nombre || 'P')[0].toUpperCase());
+        const foto = p.foto
+          ? `<img src="${p.foto}" alt="">`
+          : `<span class="gp-ini">${ini}</span>`;
+        return `<button type="button" class="gp-item" data-id="${p.id}" title="${JZAC.ui.esc(p.nombre)} ${JZAC.ui.dinero(p.precioVenta)}">
+          <span class="gp-foto">${foto}</span>
+          <span class="gp-nombre">${JZAC.ui.esc(p.nombre)}</span>
+          <span class="gp-precio">${JZAC.ui.dinero(p.precioVenta)}</span>
+        </button>`;
+      }).join('');
+    }
+
+    function vincularGrilla() {
+      if (!conGrilla) return;
+      conGrilla.querySelectorAll('.gp-item').forEach((b) => b.addEventListener('click', () => {
+        const p = productos.find((x) => x.id === Number(b.dataset.id));
+        if (!p) return;
+        if (p.ventaPeso) { pedirPeso(p, (kg) => { agregarItem(p, kg, Number(p.precioVenta)); }); return; }
+        agregaEntrada(p.codigo || p.barra || p.nombre, 1);
+      }));
+    }
+
+    function pintaGrilla() {
+      if (!conGrilla) return;
+      const cats = [...new Set(productos.map((p) => (p.categoria || '').trim() || 'Otros'))];
+      conGrilla.innerHTML = `<div class="gp-cats">
+          <button type="button" class="gp-cat activa" data-cat="__todos">Todos</button>
+          ${cats.map((c) => `<button type="button" class="gp-cat" data-cat="${JZAC.ui.esc(c)}">${JZAC.ui.esc(c)}</button>`).join('')}
+        </div>
+        <div class="gp-red" id="gp-red">${botonesGrilla('__todos')}</div>`;
+      conGrilla.querySelectorAll('.gp-cat').forEach((b) => b.addEventListener('click', () => {
+        conGrilla.querySelectorAll('.gp-cat').forEach((x) => x.classList.remove('activa'));
+        b.classList.add('activa');
+        document.getElementById('gp-red').innerHTML = botonesGrilla(b.dataset.cat);
+        vincularGrilla();
+      }));
+      vincularGrilla();
+    }
+    pintaGrilla();
+
     // ---------- repetir última venta ----------
     const btnRepetir = document.getElementById('repetir-ultima');
     if (btnRepetir && detUltima.length) {
@@ -1017,6 +1065,7 @@
       if (btnv) btnv.disabled = false;
       const nuevos = await JZAC.db.listar('productos');
       productos.splice(0, productos.length, ...nuevos);
+      pintaGrilla();
       const sel = document.getElementById('sel-prod');
       sel.innerHTML = optionesMontaje();
       sel.value = '';

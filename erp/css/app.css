@@ -372,6 +372,30 @@ th.monto { text-align: right; }
 .preview-prod { margin-top: 6px; font-size: 13px; color: var(--texto); min-height: 0; }
 .preview-prod b { color: var(--texto); }
 .txt-rojo { color: var(--rojo); }
+
+/* ---------- grilla táctil de productos ---------- */
+.gp-foto { width: 54px; height: 54px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--bg); flex-shrink: 0; }
+.gp-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gp-ini { font-size: 22px; font-weight: 800; color: var(--verde-c); }
+.gp-foto-mini { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; vertical-align: middle; margin-right: 8px; }
+.gp-cats { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 8px; }
+.gp-cat {
+  flex-shrink: 0; background: var(--campo-bg); border: 1px solid var(--borde); color: var(--texto);
+  border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: background .15s ease, color .15s ease;
+}
+.gp-cat.activa { background: var(--verde); color: #fff; border-color: var(--verde); }
+.gp-red { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; margin-top: 8px; }
+.gp-item {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: var(--campo-bg); border: 1px solid var(--borde); border-radius: 12px;
+  padding: 10px 4px 8px; cursor: pointer; font-family: inherit; text-align: center;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.gp-item:hover, .gp-item:focus-visible { border-color: var(--verde); transform: translateY(-1px); }
+.gp-item:active { background: rgba(34, 197, 94, .15); }
+.gp-nombre { font-size: 12px; line-height: 1.15; color: var(--texto); max-width: 96%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gp-precio { font-size: 12.5px; font-weight: 800; color: var(--verde); }
 #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast-item {
   background: var(--toast-bg); color: #fff; padding: 11px 18px; border-radius: 999px;

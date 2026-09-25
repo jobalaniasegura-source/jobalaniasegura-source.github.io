@@ -2,9 +2,36 @@
 // JZAC ERP - Inventario (productos, mermas, alertas)
 // ============================================================
 (function () {
+  let categoriasCache = [];
+
+  // Comprime una foto elegida con la cámara/galería para guardarla en el equipo.
+  function fotoDataURL(file) {
+    return new Promise((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 360;
+          const k = Math.min(1, max / Math.max(img.width, img.height));
+          const w = Math.max(1, Math.round(img.width * k));
+          const h = Math.max(1, Math.round(img.height * k));
+          const cv = document.createElement('canvas');
+          cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(cv.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = () => resolve('');
+        img.src = fr.result;
+      };
+      fr.onerror = () => resolve('');
+      fr.readAsDataURL(file);
+    });
+  }
+
   // ---------- productos ----------
   async function pintaProductos(cont) {
     const productos = (await JZAC.db.listar('productos')).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    categoriasCache = [...new Set(productos.filter((x) => x.categoria).map((x) => x.categoria))];
     const stockBajo = productos.filter((p) => Number(p.stock || 0) <= Number(p.stockMin || 0));
     const valor = productos.reduce((a, p) => a + Number(p.stock || 0) * Number(p.precioCompra || 0), 0);
 
@@ -91,6 +118,7 @@
 
   function modalProducto(p, refrescar, prefillCodigo) {
     const edicion = !!p;
+    const categorias = categoriasCache;
     const m = JZAC.ui.modal(`
       <div class="modal-hdr"><h3>${edicion ? 'Editar producto' : 'Nuevo producto'}</h3><button class="cierre" data-cerrar>×</button></div>
       <div class="campo"><label>Nombre del producto</label><input id="f-nombre" value="${JZAC.ui.esc(p ? p.nombre : '')}"></div>
@@ -111,11 +139,51 @@
         <div class="campo"><label>Stock actual</label><input type="number" step="1" min="0" id="f-stock" value="${p ? p.stock : ''}"></div>
         <div class="campo"><label>Stock mínimo (alerta)</label><input type="number" step="1" min="0" id="f-stockmin" value="${p ? (p.stockMin || 0) : ''}"></div>
       </div>
+      <div class="campo"><label>Categoría (opcional)</label><input id="f-categoria" list="dl-categorias" placeholder="Ej.: Gaseosas, Abarrotes, Limpieza..." value="${JZAC.ui.esc(p ? (p.categoria || '') : '')}"></div>
+      <datalist id="dl-categorias">${categorias.map((c) => `<option value="${JZAC.ui.esc(c)}">`).join('')}</datalist>
+      <div class="campo">
+        <label>Foto del producto (opcional)</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="gp-foto"><img id="f-foto-preview" alt="" style="display:${p && p.foto ? 'block' : 'none'}"></span>
+          <input type="file" id="f-foto" accept="image/*" capture="environment" style="display:none">
+          <button class="btn" id="f-foto-btn" type="button">📷 Tomar / elegir</button>
+          ${p && p.foto ? '<button class="btn btn-peligro" id="f-foto-limpiar" type="button">Quitar</button>' : ''}
+        </div>
+      </div>
       <div class="campo"><label>Fecha de vencimiento (opcional)</label><input type="date" id="f-vence" value="${p && p.fechaVencimiento ? JZAC.ui.fechaInput(p.fechaVencimiento) : ''}"></div>`,
       `<button class="btn" data-cerrar>Cancelar</button>
        <button class="btn btn-primario" id="guardar-prod">${edicion ? 'Guardar cambios' : 'Agregar producto'}</button>`);
 
     if (p && p.ventaPeso) { m.raiz.querySelector('#f-ventatipo').value = 'peso'; }
+
+    let fotoGuardada = (p && p.foto) || '';
+    const inFoto = document.getElementById('f-foto');
+    const imgFoto = document.getElementById('f-foto-preview');
+    if (fotoGuardada) {
+      imgFoto.src = fotoGuardada;
+      imgFoto.style.display = 'block';
+    }
+    document.getElementById('f-foto-btn').addEventListener('click', () => inFoto.click());
+    inFoto.addEventListener('change', async () => {
+      const file = inFoto.files && inFoto.files[0];
+      if (!file) return;
+      const data = await fotoDataURL(file);
+      if (!data) { JZAC.ui.toast('No pude leer la imagen. Prueba con otra foto.', 'mal'); return; }
+      fotoGuardada = data;
+      imgFoto.src = data;
+      imgFoto.style.display = 'block';
+      JZAC.ui.toast('Foto lista.', 'bien');
+    });
+    const btnLimpiar = document.getElementById('f-foto-limpiar');
+    if (btnLimpiar) {
+      btnLimpiar.addEventListener('click', () => {
+        fotoGuardada = '';
+        imgFoto.src = '';
+        imgFoto.style.display = 'none';
+        inFoto.value = '';
+        btnLimpiar.remove();
+      });
+    }
 
     m.raiz.querySelector('#escanear-codigo').addEventListener('click', async () => {
       const res = await JZAC.escanear({ titulo: 'Escanear código del producto' });
@@ -130,6 +198,8 @@
       if (!nombre) { JZAC.ui.toast('Escribe el nombre del producto.', 'mal'); return; }
       const obj = {
         nombre,
+        categoria: document.getElementById('f-categoria').value.trim(),
+        foto: fotoGuardada,
         ventaPeso: document.getElementById('f-ventatipo').value === 'peso',
         codigo: document.getElementById('f-codigo').value.trim(),
         precioCompra: Math.max(0, Number(document.getElementById('f-compra').value || 0)),
