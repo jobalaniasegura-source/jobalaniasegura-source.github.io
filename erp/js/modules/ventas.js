@@ -515,6 +515,7 @@
     const clientes = await JZAC.db.listar('clientes');
     let items = [];
     let ultimaAgregacion = 0;
+    let pendienteCobro = null;
     const metodos = ['Efectivo', 'Tarjeta', 'Yape', 'Plin', 'Transferencia', 'Mixto'];
     const metodos2 = ['Yape', 'Plin', 'Tarjeta', 'Transferencia'];
 
@@ -712,6 +713,7 @@
 
     function agregarItem(p, cant, precio) {
       const nuevo = Number(cant);
+      pendienteCobro = null;
       const existente = items.find((it) => it.productoId === p.id);
       const total = Number(existente ? existente.cantidad : 0) + nuevo;
       if (total > Number(p.stock || 0) + 0.0001) {
@@ -880,12 +882,21 @@
           return;
         }
         // Enter sin texto + hay productos: cobrar (flujo rápido).
-        // Se exige una pausa >600ms desde la última carga para que un lector
-        // que manda doble Enter no registre la venta antes de tiempo.
+        // Con pausa normal (>600ms) cobra de una vez. Si se presiona justo
+        // después de agregar un producto (muy común), se pide un segundo Enter
+        // como confirmación para que un lector envíe doble Enter por error.
         const hayModal = !!document.getElementById('modal-root').innerHTML;
-        if (items.length > 0 && !hayModal && Date.now() - ultimaAgregacion > 600) {
+        if (items.length === 0 || hayModal) return;
+        const pausa = Date.now() - ultimaAgregacion;
+        if (pausa > 600) { registrarAhora(); return; }
+        const ahora = Date.now();
+        if (pendienteCobro && ahora - pendienteCobro < 3000) {
+          pendienteCobro = null;
           registrarAhora();
+          return;
         }
+        pendienteCobro = ahora;
+        JZAC.ui.toast('Listo para cobrar · presiona Enter otra vez', '');
       });
       // el lector puede no terminar en Enter; agrega tras una pausa breve
       let timerScan = null;
@@ -1061,6 +1072,7 @@
     async function reiniciarFormulario() {
       items = [];
       ultimaAgregacion = 0;
+      pendienteCobro = null;
       const btnv = document.getElementById('guardar-venta');
       if (btnv) btnv.disabled = false;
       const nuevos = await JZAC.db.listar('productos');
