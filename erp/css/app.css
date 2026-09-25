@@ -354,6 +354,24 @@ th.monto { text-align: right; }
 /* ---------- caja de botón escáner en formularios ---------- */
 .scan-btn-fila { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
 .scan-btn-fila > div { flex: 1 1 220px; min-width: 0; }
+
+/* ---------- más vendidos / chips de un toque ---------- */
+.mas-vendidos { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+.mas-vendidos::-webkit-scrollbar { height: 6px; }
+.mas-vendidos::-webkit-scrollbar-thumb { background: var(--borde); border-radius: 999px; }
+.mv-titulo { align-self: center; font-size: 12px; font-weight: 700; color: var(--texto-suave); white-space: nowrap; }
+.chip {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: var(--campo-bg); border: 1px solid var(--borde); border-radius: 12px;
+  padding: 8px 12px; cursor: pointer; font-family: inherit; text-align: left;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.chip:hover, .chip:focus-visible { border-color: var(--verde); transform: translateY(-2px); }
+.chip span { font-size: 12.5px; font-weight: 600; color: var(--texto); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip b { font-size: 13px; color: var(--verde); }
+.preview-prod { margin-top: 6px; font-size: 13px; color: var(--texto); min-height: 0; }
+.preview-prod b { color: var(--texto); }
+.txt-rojo { color: var(--rojo); }
 #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast-item {
   background: var(--toast-bg); color: #fff; padding: 11px 18px; border-radius: 999px;

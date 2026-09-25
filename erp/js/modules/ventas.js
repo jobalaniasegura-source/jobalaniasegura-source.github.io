@@ -518,19 +518,50 @@
     const metodos = ['Efectivo', 'Tarjeta', 'Yape', 'Plin', 'Transferencia', 'Mixto'];
     const metodos2 = ['Yape', 'Plin', 'Tarjeta', 'Transferencia'];
 
-    const optionesMontaje = () => `
-      <option value="">Busca y selecciona un producto...</option>
-      ${productos.map((p) => `<option value="${p.id}">${JZAC.ui.esc(p.nombre)}${p.ventaPeso ? ' (por kg)' : ''} · S/ ${Number(p.precioVenta).toFixed(2)} · stock: ${JZAC.ui.n(p.stock)}</option>`).join('')}`;
+    // Más vendidos del último mes + última venta (para repetirla rápido).
+    const ventasAll = await JZAC.db.listar('ventas');
+    const detAll = await JZAC.db.listar('detalle_venta');
+    const fechaVenta = {};
+    ventasAll.forEach((v) => { fechaVenta[v.id] = v.fecha || 0; });
+    const limiteMes = Date.now() - 30 * 24 * 3600 * 1000;
+    const conteo = {};
+    detAll.forEach((d) => {
+      if ((fechaVenta[d.ventaId] || 0) >= limiteMes) {
+        const k = JZAC.negocio.nombreNorm(d.producto);
+        conteo[k] = (conteo[k] || 0) + Number(d.cantidad);
+      }
+    });
+    const topSell = Object.keys(conteo)
+      .map((k) => ({ k, cant: conteo[k] }))
+      .sort((a, b) => b.cant - a.cant)
+      .slice(0, 6)
+      .map((t) => productos.find((p) => JZAC.negocio.nombreNorm(p.nombre) === t.k))
+      .filter(Boolean);
+    ventasAll.sort((a, b) => b.fecha - a.fecha);
+    const últimaVenta = ventasAll[0];
+    const detUltima = últimaVenta ? detAll.filter((d) => d.ventaId === últimaVenta.id) : [];
+
+    const optionesMontaje = () => {
+      const opts = productos.map((p) => `<option value="${p.id}">${JZAC.ui.esc(p.nombre)}${p.ventaPeso ? ' (por kg)' : ''}${p.codigo || p.barra ? ` · ${JZAC.ui.esc(p.codigo || p.barra)}` : ''} · S/ ${Number(p.precioVenta).toFixed(2)} · stock: ${JZAC.ui.n(p.stock)}</option>`).join('');
+      return `<option value="">Busca y selecciona un producto...</option>${opts}`;
+    };
+    const opcionesDatalist = () => productos.map((p) =>
+      `<option value="${JZAC.ui.esc(p.codigo || p.barra || p.nombre)}">${JZAC.ui.esc(p.nombre)} · S/ ${JZAC.ui.dinero(p.precioVenta)} · stock ${JZAC.ui.n(p.stock)}${p.ventaPeso ? ' (por kg)' : ''}</option>`
+    ).join('');
 
     cont.innerHTML = `
       <button class="btn btn-sm" id="volver" style="margin-bottom:14px">← Volver a ventas</button>
       <div class="grid grid-2">
         <div class="card">
           <div class="seccion-titulo" style="margin-top:0">1 · Productos</div>
+          <div id="mas-vendidos" class="mas-vendidos" style="${topSell.length ? '' : 'display:none'}"></div>
+          <button class="btn btn-sm" id="repetir-ultima" style="${detUltima.length ? '' : 'display:none'};margin-bottom:12px;border:1px dashed var(--dorado)" title="Vuelve a cargar los productos de la última venta">↻ Repetir última venta</button>
           <div class="scan-btn-fila" style="margin-bottom:13px">
             <div class="campo" style="margin-bottom:0">
-              <label>Código / QR del producto</label>
-              <input id="scan-rapido" placeholder="Escanea con el lector o escribe el código y Enter..." autocomplete="off" style="font-size:14px">
+              <label>Código / nombre del producto</label>
+              <input id="scan-rapido" list="dl-prod" placeholder="Escanea, escribe el código o el nombre y Enter..." autocomplete="off" style="font-size:14px">
+              <datalist id="dl-prod"></datalist>
+              <div id="preview-prod" class="preview-prod"></div>
             </div>
             <button class="btn" id="escanear-venta" title="Escanear con la cámara del celular"> Escanear cámara</button>
           </div>
@@ -679,11 +710,18 @@
     }
 
     function agregarItem(p, cant, precio) {
-      ultimaAgregacion = Date.now();
+      const nuevo = Number(cant);
       const existente = items.find((it) => it.productoId === p.id);
-      if (existente) { existente.cantidad = Number(existente.cantidad) + Number(cant); }
-      else { items.push({ productoId: p.id, nombre: p.nombre, cantidad: Number(cant), precio, costo: Number(p.precioCompra || 0), esPeso: !!p.ventaPeso }); }
+      const total = Number(existente ? existente.cantidad : 0) + nuevo;
+      if (total > Number(p.stock || 0) + 0.0001) {
+        JZAC.ui.toast(`${p.nombre}: solo quedan ${JZAC.ui.n(p.stock)} en stock.`, 'mal');
+        return false;
+      }
+      ultimaAgregacion = Date.now();
+      if (existente) { existente.cantidad = Math.round(total * 1000) / 1000; }
+      else { items.push({ productoId: p.id, nombre: p.nombre, cantidad: nuevo, precio, costo: Number(p.precioCompra || 0), esPeso: !!p.ventaPeso }); }
       pintaItems();
+      return true;
     }
 
     function pedirPeso(p, alAgregar) {
@@ -742,49 +780,94 @@
     const inPrecio = document.getElementById('in-precio');
     selProd.addEventListener('change', () => {
       const p = productos.find((x) => x.id === Number(selProd.value));
-      if (p) {
-        inPrecio.value = p.precioVenta;
-        document.getElementById('lb-cant').textContent = p.ventaPeso ? 'Peso (kg)' : 'Cantidad';
-        document.getElementById('in-cant').step = p.ventaPeso ? '0.001' : '1';
+      if (!p) return;
+      inPrecio.value = p.precioVenta;
+      document.getElementById('lb-cant').textContent = p.ventaPeso ? 'Peso (kg)' : 'Cantidad';
+      document.getElementById('in-cant').step = p.ventaPeso ? '0.001' : '1';
+      // Al elegir un producto se rellena el campo con su código de barras.
+      if (scanRapido) {
+        scanRapido.value = p.codigo || p.barra || '';
+        if (p.codigo || p.barra) muestraPreview(p);
       }
     });
 
     document.getElementById('agregar-item').addEventListener('click', () => {
       const p = productos.find((x) => x.id === Number(selProd.value));
       if (!p) { JZAC.ui.toast('Selecciona un producto.', 'mal'); return; }
+      const limpiaScan = () => { if (scanRapido) { scanRapido.value = ''; scanRapido.focus(); } };
       if (p.ventaPeso) {
         pedirPeso(p, (kg) => {
           agregarItem(p, kg, Number(p.precioVenta));
           JZAC.ui.toast(`${p.nombre}: ${JZAC.ui.n(kg)} kg agregado.`, 'bien');
+          limpiaScan();
         });
         return;
       }
       const cant = Math.max(1, Number(document.getElementById('in-cant').value || 1));
       if (cant > Number(p.stock)) { JZAC.ui.toast(`Solo hay ${JZAC.ui.n(p.stock)} en stock.`, 'mal'); return; }
       const precio = Math.max(0, Number(inPrecio.value || 0)) || Number(p.precioVenta);
-      agregarItem(p, cant, precio);
+      if (agregarItem(p, cant, precio)) limpiaScan();
     });
 
-    // ---------- lector de barras USB (escribe codigo + Enter) ----------
+    // ---------- entrada rápida: escanear, escribir código o nombre ----------
     const scanRapido = document.getElementById('scan-rapido');
-    function agregaPorCodigo(texto, cantidadDefault) {
+    const dlProd = document.getElementById('dl-prod');
+    const previewProd = document.getElementById('preview-prod');
+
+    function muestraPreview(p) {
+      if (!previewProd) return;
+      if (!p) { previewProd.innerHTML = ''; return; }
+      const rest = Math.max(0, Number(p.stock || 0));
+      const alerta = rest <= Number(p.stockMin || 0);
+      previewProd.innerHTML =
+        `<b>${JZAC.ui.esc(p.nombre)}</b>${p.ventaPeso ? ' <span class="badge badge-azul">por kg</span>' : ''} · ${JZAC.ui.dinero(p.precioVenta)} · stock: <b class="${alerta ? 'txt-rojo' : ''}">${JZAC.ui.n(rest)}</b> ${alerta ? '<span class="badge badge-rojo">¡bajo!</span>' : ''}`;
+    }
+
+    // "3=código" · "2x código" · "10 *código" → agrega esa cantidad.
+    function extraeCantidad(texto) {
+      const m = String(texto || '').match(/^(\d{1,3})\s*[=*xX:]\s*(.+)$/);
+      return m ? { cant: Math.max(1, Number(m[1])), resto: m[2].trim() } : null;
+    }
+
+    function encuentraProducto(texto) {
       const t = String(texto || '').trim();
-      if (!t) return;
-      const p = JZAC.productoPorCodigo(productos, t);
-      if (!p) { JZAC.ui.toast(`Código no encontrado: ${t}`, 'mal'); return; }
-      if (Number(p.stock) < 1) { JZAC.ui.toast(`${p.nombre}: sin stock.`, 'mal'); return; }
+      if (!t) return null;
+      const porCodigo = JZAC.productoPorCodigo(productos, t);
+      if (porCodigo) return porCodigo;
+      return productos.find((p) => JZAC.negocio.nombreNorm(p.nombre) === JZAC.negocio.nombreNorm(t)) || null;
+    }
+
+    // agrega a la venta. devuelve true si se agregó.
+    function agregaEntrada(texto, cantidadFija) {
+      const t = String(texto || '').trim();
+      if (!t) return false;
+      const qty = extraeCantidad(t);
+      const buscar = qty ? qty.resto : t;
+      const cant = qty ? qty.cant : (cantidadFija != null ? cantidadFija : 1);
+      const p = encuentraProducto(buscar);
+      if (!p) { JZAC.ui.toast(`No encontré: ${t}`, 'mal'); return false; }
+      if (Number(p.stock) < 1) { JZAC.ui.toast(`${p.nombre}: sin stock.`, 'mal'); return false; }
       if (p.ventaPeso) {
         pedirPeso(p, (kg) => {
           agregarItem(p, kg, Number(p.precioVenta));
           JZAC.ui.toast(`${p.nombre}: ${JZAC.ui.n(kg)} kg.`, 'bien');
-          if (scanRapido) scanRapido.focus();
+          muestraPreview(null);
+          if (scanRapido) { scanRapido.value = ''; scanRapido.focus(); }
         });
-        return;
+        return true;
       }
-      agregarItem(p, cantidadDefault != null ? cantidadDefault : 1, Number(p.precioVenta));
-      JZAC.ui.toast(`${p.nombre} +${cantidadDefault != null ? cantidadDefault : 1}`, 'bien');
+      const ok = agregarItem(p, cant, Number(p.precioVenta));
+      if (ok) {
+        JZAC.ui.toast(`${p.nombre} +${JZAC.ui.n(cant)}`, 'bien');
+        if (scanRapido) { scanRapido.value = ''; }
+      }
+      muestraPreview(null);
+      if (scanRapido) scanRapido.focus();
+      return ok;
     }
+
     if (scanRapido) {
+      if (dlProd) dlProd.innerHTML = opcionesDatalist();
       scanRapido.focus();
       scanRapido.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
@@ -792,11 +875,10 @@
         clearTimeout(timerScan);
         const t = scanRapido.value.trim();
         if (t) {
-          agregaPorCodigo(t);
-          scanRapido.value = '';
+          agregaEntrada(t);
           return;
         }
-        // Enter sin código + ya hay productos: cobrar (flujo rápido).
+        // Enter sin texto + hay productos: cobrar (flujo rápido).
         // Se exige una pausa >600ms desde la última carga para que un lector
         // que manda doble Enter no registre la venta antes de tiempo.
         const hayModal = !!document.getElementById('modal-root').innerHTML;
@@ -808,9 +890,14 @@
       let timerScan = null;
       scanRapido.addEventListener('input', () => {
         clearTimeout(timerScan);
+        const t = scanRapido.value.trim();
+        const p = t ? encuentraProducto(extraeCantidad(t) ? extraeCantidad(t).resto : t) : null;
+        muestraPreview(p);
         timerScan = setTimeout(() => {
-          const t = scanRapido.value.trim();
-          if (t) { agregaPorCodigo(t); scanRapido.value = ''; }
+          const v = scanRapido.value.trim();
+          if (!v) return;
+          const soloCodigo = JZAC.productoPorCodigo(productos, (extraeCantidad(v) ? extraeCantidad(v).resto : v));
+          if (soloCodigo) agregaEntrada(v); // autoadd solo para códigos exactos
         }, 220);
       });
     }
@@ -819,8 +906,38 @@
       const res = await JZAC.escanear({ titulo: 'Escanear producto' });
       if (!res || !res.texto) return;
       if (scanRapido) scanRapido.value = res.texto;
-      agregaPorCodigo(res.texto);
+      agregaEntrada(res.texto);
     });
+
+    // ---------- más vendidos (un toque) ----------
+    const conMasVendidos = document.getElementById('mas-vendidos');
+    if (conMasVendidos && topSell.length) {
+      conMasVendidos.innerHTML = '<span class="mv-titulo">Más vendidos:</span>' + topSell.map((p) => `
+        <button type="button" class="chip" data-mv="${p.id}">
+          <span>${JZAC.ui.esc(p.nombre)}</span><b>${JZAC.ui.dinero(p.precioVenta)}</b>
+        </button>`).join('');
+      conMasVendidos.querySelectorAll('[data-mv]').forEach((b) => b.addEventListener('click', () => {
+        const p = productos.find((x) => x.id === Number(b.dataset.mv));
+        if (!p) return;
+        if (p.ventaPeso) { pedirPeso(p, (kg) => { agregarItem(p, kg, Number(p.precioVenta)); }); return; }
+        agregaEntrada(p.codigo || p.barra || p.nombre, 1);
+      }));
+    }
+
+    // ---------- repetir última venta ----------
+    const btnRepetir = document.getElementById('repetir-ultima');
+    if (btnRepetir && detUltima.length) {
+      btnRepetir.addEventListener('click', () => {
+        detUltima.forEach((d) => {
+          const p = productos.find((x) => JZAC.negocio.nombreNorm(x.nombre) === JZAC.negocio.nombreNorm(d.producto));
+          if (!p) return;
+          if (p.ventaPeso) { agregarItem(p, Number(d.cantidad), Number(d.precio)); return; }
+          agregarItem(p, Number(d.cantidad), Number(d.precio));
+        });
+        JZAC.ui.toast('Última venta cargada en la caja.', 'bien');
+        if (scanRapido) scanRapido.focus();
+      });
+    }
 
     // ---------- pago: efectivo / mixto / factura ----------
     const inDescuento = document.getElementById('in-descuento');
@@ -918,7 +1035,8 @@
       sincPanelPago();
       pintaItems();
       actualizaTot();
-      if (scanRapido) scanRapido.focus();
+      if (scanRapido) { scanRapido.value = ''; scanRapido.focus(); }
+      if (previewProd) previewProd.innerHTML = '';
     }
 
     async function registrarAhora() {
