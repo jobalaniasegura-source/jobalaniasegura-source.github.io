@@ -255,8 +255,21 @@ window.JZAC.negocio = {
   nombreClave: (n) => String(n || '').trim().toLowerCase().replace(/\s+/g, ' '),
   imprimir: () => { try { window.print(); } catch (e) { ui.toast('No se pudo imprimir', 'mal'); } },
   wha: (texto) => {
-    window.open('https://wa.me/51929068219?text=' + encodeURIComponent(texto), '_blank');
+    JZAC.ui.abrirWha('https://wa.me/51929068219?text=' + encodeURIComponent(texto));
   }
+};
+
+// Abre WhatsApp con un enlace real (target=_blank). No lo bloquean los
+// navegadores (ni los pop-up blockers ni el modo PWA/móvil) porque no depende
+// de window.open.
+window.JZAC.ui.abrirWha = function (url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 };
 
 // Impresión confiable desde la web: usa un iframe oculto, sin ventanas

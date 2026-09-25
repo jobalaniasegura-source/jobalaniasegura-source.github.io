@@ -2,6 +2,7 @@
 // JZAC ERP - Proveedores y pedidos
 // ============================================================
 (function () {
+  let proveedoresCache = []; // para enviar pedidos por WhatsApp sin esperar (evita popup bloqueado)
   // ---------- proveedores ----------
   async function vistaProveedores(cont) {
     const proveedores = (await JZAC.db.listar('proveedores')).sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -86,6 +87,7 @@
 
   // ---------- pedidos ----------
   async function vistaPedidos(cont) {
+    proveedoresCache = await JZAC.db.listar('proveedores');
     const pedidos = (await JZAC.db.listar('pedidos_proveedor')).sort((a, b) => b.fecha - a.fecha);
     const detp = await JZAC.db.listar('detalle_pedido');
 
@@ -152,9 +154,8 @@
 
   function items_count(det, pid) { return det.filter((x) => x.pedidoId === pid).length; }
 
-  async function enviarPedidoWha(p, dets) {
-    const proveedores = await JZAC.db.listar('proveedores');
-    const pv = proveedores.find((x) => JZAC.negocio.nombreNorm(x.nombre) === JZAC.negocio.nombreNorm(p.proveedor));
+  function enviarPedidoWha(p, dets) {
+    const pv = proveedoresCache.find((x) => JZAC.negocio.nombreNorm(x.nombre) === JZAC.negocio.nombreNorm(p.proveedor));
     let num = pv && pv.whatsapp ? String(pv.whatsapp).replace(/[^0-9]/g, '') : '';
     if (/^9\d{8}$/.test(num)) num = '51' + num;
     if (!num) { JZAC.ui.toast('Este proveedor no tiene WhatsApp guardado. Agrégaselo en Proveedores.', 'mal'); return; }
@@ -169,7 +170,7 @@
       '',
       `*TOTAL: ${JZAC.ui.dinero(tot)}*`
     ].filter((x) => x !== '').join('\n');
-    window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank');
+    JZAC.ui.abrirWha('https://wa.me/' + num + '?text=' + encodeURIComponent(txt));
     JZAC.ui.toast('Pedido listo para enviar en WhatsApp.', 'bien');
   }
 
