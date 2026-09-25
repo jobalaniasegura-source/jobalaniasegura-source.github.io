@@ -270,6 +270,18 @@ body {
 
 /* ---------- tablas ---------- */
 .tabla-wrap { overflow-x: auto; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--superficie); box-shadow: var(--sombra); }
+.tabla-wrap a { color: var(--verde-c); font-weight: 600; text-decoration: none; }
+.tabla-wrap a:visited { color: var(--verde-c); }
+.tabla-wrap a:hover { color: var(--verde); text-decoration: underline; }
+
+/* avisos destacados: legibles en tema claro y oscuro */
+.aviso-cuenta {
+  background: rgba(233, 161, 59, .14);
+  border: 1px solid rgba(233, 161, 59, .45);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radio-sm);
+}
 table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
 th {
   text-align: left; padding: 12px 14px; background: var(--th-bg);

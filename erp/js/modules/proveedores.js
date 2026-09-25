@@ -275,7 +275,7 @@
         </div>
         <div id="cat-sup" class="card" style="background:var(--bg);border:1px dashed var(--borde);padding:10px 12px;margin-bottom:14px"></div>
         ${sugerencias.length ? `
-          <div class="card" style="background:var(--bg-sug, #fff7e0);border:1px solid #f0c36d;margin-bottom:14px">
+          <div class="aviso-cuenta" style="margin-bottom:14px">
             <b>📦 Pedido sugerido automático</b>
             <div class="texto-suave" style="font-size:13px;margin:2px 0 8px">Cuando el stock llega al mínimo o se agotará pronto según las ventas de los últimos 30 días.</div>
             <div class="tabla-wrap"><table>

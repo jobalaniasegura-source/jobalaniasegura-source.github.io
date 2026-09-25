@@ -169,7 +169,7 @@
           ${clientes.map((c) => `<option>${JZAC.ui.esc(c.nombre)}</option>`).join('')}
         </select>
       </div>
-      <div id="f-aviso" class="card" style="display:none;background:#FFF7E0;border:1px solid #f0c36d;padding:10px 12px;margin-bottom:12px"></div>
+      <div id="f-aviso" class="aviso-cuenta" style="display:none"></div>
       <div class="seccion-titulo">Productos que lleva</div>
       <div class="fila">
         <div class="campo" style="margin:0"><label>Producto</label><input id="f-prod" list="dl-fiado-prod" placeholder="Escribe o elige..."></div>
