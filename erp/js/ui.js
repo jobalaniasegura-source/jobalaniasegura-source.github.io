@@ -124,6 +124,7 @@ async function mostrarApp(usuario) {
         ${NAV.map((it) => `<a href="#/${it.ruta}" data-ruta="${it.ruta}">${ui.esc(it.label)}</a>`).join('')}
         <a href="#" data-salir style="margin-top:14px;color:#F87171;">Cerrar sesión</a>
       </nav>
+      <div id="nav-scrim"></div>
       <div class="main">
         <div class="topbar">
           <button class="btn btn-sm btn-menu" id="btn-menu">☰</button>
@@ -151,6 +152,8 @@ async function mostrarApp(usuario) {
 
   const nav = document.getElementById('nav');
   document.getElementById('btn-menu').addEventListener('click', () => nav.classList.toggle('abierto'));
+  const scrim = document.getElementById('nav-scrim');
+  if (scrim) scrim.addEventListener('click', () => nav.classList.remove('abierto'));
   nav.querySelectorAll('a[data-ruta]').forEach((a) => {
     a.addEventListener('click', () => nav.classList.remove('abierto'));
   });
