@@ -2,16 +2,24 @@
 // JZAC ERP - UI: vista app, navegacion y ayudantes
 // ============================================================
 const NAV = [
-  { ruta: 'dashboard',    label: 'Inicio',        mod: 'dashboard' },
-  { ruta: 'ventas',       label: 'Ventas',        mod: 'ventas' },
-  { ruta: 'inventario',   label: 'Inventario',    mod: 'inventario' },
-  { ruta: 'clientes',     label: 'Clientes',      mod: 'clientes' },
-  { ruta: 'fiados',       label: 'Fiados',        mod: 'fiados' },
-  { ruta: 'proveedores',  label: 'Proveedores',   mod: 'proveedores' },
-  { ruta: 'gastos',       label: 'Gastos',        mod: 'gastos' },
-  { ruta: 'reportes',     label: 'Reportes',      mod: 'reportes' },
-  { ruta: 'config',       label: 'Configuración', mod: 'config' }
+  { ruta: 'dashboard',    label: 'Inicio',        mod: 'dashboard',  ico: '🏠' },
+  { ruta: 'ventas',       label: 'Ventas',        mod: 'ventas',     ico: '🛒' },
+  { ruta: 'inventario',   label: 'Inventario',    mod: 'inventario', ico: '📦' },
+  { ruta: 'clientes',     label: 'Clientes',      mod: 'clientes',   ico: '👥' },
+  { ruta: 'fiados',       label: 'Fiados',        mod: 'fiados',     ico: '📒' },
+  { ruta: 'proveedores',  label: 'Proveedores',   mod: 'proveedores', ico: '🚚' },
+  { ruta: 'gastos',       label: 'Gastos',        mod: 'gastos',     ico: '💸' },
+  { ruta: 'reportes',     label: 'Reportes',      mod: 'reportes',   ico: '📊' },
+  { ruta: 'config',       label: 'Configuración', mod: 'config',     ico: '⚙️' }
 ];
+
+// Esc cierra el modal abierto (comodidad en PC/laptop)
+let modalAbierto = false;
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !modalAbierto) return;
+  const f = document.querySelector('#modal-root .modal-fondo');
+  if (f) f.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+});
 
 const ui = {
   esc: (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
@@ -75,7 +83,8 @@ const ui = {
         </div>
       </div>`;
     const fondo = raiz.firstElementChild;
-    const cerrar = () => { raiz.innerHTML = ''; };
+    const cerrar = () => { raiz.innerHTML = ''; modalAbierto = false; };
+    modalAbierto = true;
     fondo.addEventListener('click', (e) => { if (e.target === fondo) cerrar(); });
     raiz.querySelectorAll('[data-cerrar]').forEach((b) => b.addEventListener('click', cerrar));
     return { cerrar, raiz };
@@ -121,7 +130,7 @@ async function mostrarApp(usuario) {
           <img src="./icons/icono.svg" alt="JZAC">
           <div>JZAC ERP<small>${ui.esc(usuario.nombreNegocio)}</small></div>
         </div>
-        ${NAV.map((it) => `<a href="#/${it.ruta}" data-ruta="${it.ruta}">${ui.esc(it.label)}</a>`).join('')}
+        ${NAV.map((it) => `<a href="#/${it.ruta}" data-ruta="${it.ruta}"><span class="ico">${it.ico}</span>${ui.esc(it.label)}</a>`).join('')}
         <a href="#" data-salir style="margin-top:14px;color:#F87171;">Cerrar sesión</a>
       </nav>
       <div id="nav-scrim"></div>
@@ -129,6 +138,7 @@ async function mostrarApp(usuario) {
         <div class="topbar">
           <button class="btn btn-sm btn-menu" id="btn-menu">☰</button>
           <h2 id="titulo-mod">Inicio</h2>
+          <div class="topbar-fecha">${ui.fe(Date.now())}</div>
           <button class="btn btn-sm btn-suave" id="btn-tema" title="Cambiar entre tema claro y oscuro">Oscuro</button>
           <div class="topbar-user"><b>${ui.esc(usuario.nombre)}</b></div>
         </div>
@@ -177,6 +187,7 @@ function cargarModulo() {
     a.classList.toggle('active', a.dataset.ruta === ruta);
   });
   document.getElementById('titulo-mod').textContent = nav.label;
+  document.title = `${nav.label} · JZAC ERP`;
   const cont = document.getElementById('contenido');
   cont.scrollTop = 0;
   window.scrollTo(0, 0);

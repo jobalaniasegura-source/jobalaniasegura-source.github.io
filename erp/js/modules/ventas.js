@@ -552,7 +552,7 @@
 
     cont.innerHTML = `
       <button class="btn btn-sm" id="volver" style="margin-bottom:14px">← Volver a ventas</button>
-      <div class="grid grid-2">
+      <div class="grid grid-2 pos-grid">
         <div class="card">
           <div class="seccion-titulo" style="margin-top:0">1 · Productos</div>
           <div id="mas-vendidos" class="mas-vendidos" style="${topSell.length ? '' : 'display:none'}"></div>

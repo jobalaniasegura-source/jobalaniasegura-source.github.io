@@ -511,6 +511,25 @@ th.monto { text-align: right; }
 @media (max-width: 480px) {
   .grid-4, .grid-3 { grid-template-columns: 1fr; }
 }
+
+/* ---------- PC / laptop: pantalla aprovechada ---------- */
+.topbar-fecha { display: none; }
+@media (min-width: 901px) {
+  .topbar-fecha {
+    display: inline-block; font-size: 13px; color: var(--texto-suave);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  /* caja de venta: productos a la izquierda con más espacio, pago a la derecha */
+  .pos-grid { grid-template-columns: minmax(0, 1.4fr) minmax(330px, 1fr); }
+  /* modales más cómodos con mouse */
+  .modal { max-width: 540px; }
+  .modal.amplio { max-width: 780px; }
+}
+@media (min-width: 1500px) {
+  /* pantallas grandes: aprovechar el ancho en vez de dejar márgenes vacíos */
+  .contenido { max-width: 1440px; }
+}
+
 @media print {
   .nav, .topbar, .acciones { display: none; }
   .app { display: block; }
